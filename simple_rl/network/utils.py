@@ -10,12 +10,12 @@ def initialize_weights_orthogonal(m, gain=1.41):
 
 
 def build_mlp(input_dim, output_dim, hidden_units=[64, 64],
-              Activation=nn.ReLU):
+              HiddenActivation=nn.ReLU):
     layers = []
     units = input_dim
     for next_units in hidden_units:
         layers.append(nn.Linear(units, next_units))
-        layers.append(Activation())
+        layers.append(HiddenActivation())
         units = next_units
     layers.append(nn.Linear(units, output_dim))
     return nn.Sequential(*layers)

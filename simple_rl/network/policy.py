@@ -13,14 +13,14 @@ from .utils import (
 class SteteIndependentGaussianPolicy(torch.jit.ScriptModule):
 
     def __init__(self, state_shape, action_shape, hidden_units=[64, 64],
-                 Activation=nn.Tanh):
+                 HiddenActivation=nn.Tanh):
         super().__init__()
 
         self.net = build_mlp(
             input_dim=state_shape[0],
             output_dim=action_shape[0],
             hidden_units=hidden_units,
-            Activation=Activation
+            HiddenActivation=HiddenActivation
         ).apply(initialize_weights_orthogonal)
 
         self.net[-1].apply(
@@ -48,14 +48,14 @@ class SteteIndependentGaussianPolicy(torch.jit.ScriptModule):
 class SteteDependentGaussianPolicy(torch.jit.ScriptModule):
 
     def __init__(self, state_shape, action_shape, hidden_units=[256, 256],
-                 Activation=partial(nn.ReLU, inplace=True)):
+                 HiddenActivation=partial(nn.ReLU, inplace=True)):
         super().__init__()
 
         self.net = build_mlp(
             input_dim=state_shape[0],
             output_dim=2 * action_shape[0],
             hidden_units=hidden_units,
-            Activation=Activation
+            HiddenActivation=HiddenActivation
         ).apply(initialize_weights_orthogonal)
 
     @torch.jit.script_method

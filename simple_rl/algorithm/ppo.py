@@ -26,12 +26,12 @@ class PPO:
             state_shape=state_shape,
             action_shape=action_shape,
             hidden_units=[64, 64],
-            Activation=nn.Tanh
+            HiddenActivation=nn.Tanh
         ).to(device)
         self.critic = StateFunction(
             state_shape=state_shape,
             hidden_units=[64, 64],
-            Activation=nn.Tanh
+            HiddenActivation=nn.Tanh
         ).to(device)
 
         self.optim_actor = torch.optim.Adam(
