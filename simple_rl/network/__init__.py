@@ -1,6 +1,10 @@
 from .policy import (
-    StateDependentGaussianPolicy, StateIndependentGaussianPolicy
+    DeterministicPolicy,
+    StateDependentVarianceGaussianPolicy,
+    StateIndependentVarianceGaussianPolicy
 )
 from .value import (
-    StateFunction, TwinnedStateActionFunction
+    StateFunction,
+    StateActionFunction,
+    TwinnedStateActionFunction
 )

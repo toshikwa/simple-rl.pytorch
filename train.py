@@ -5,7 +5,7 @@ import torch
 import gym
 import pybullet_envs
 
-from simple_rl.algorithm import PPO, SAC
+from simple_rl.algorithm import ALGORITHMS
 from simple_rl.trainer import Trainer
 
 gym.logger.set_level(40)
@@ -25,8 +25,7 @@ def run(args):
     log_dir = os.path.join(
         'logs', args.env_id, f'{args.algo}-seed{args.seed}-{time}')
 
-    ALGO = PPO if args.algo == 'ppo' else SAC
-    algo = ALGO(
+    algo = ALGORITHMS[args.algo](
         state_shape=env.observation_space.shape,
         action_shape=env.action_space.shape,
         device=device

@@ -38,7 +38,7 @@ class Trainer:
 
         t = 0
         state = self.env.reset()
-        self.algo.buffer.reset(state)
+        self.algo.reset(state)
 
         for steps in range(1, self.num_steps + 1):
             state, t = self.algo.step(self.env, state, t, steps)

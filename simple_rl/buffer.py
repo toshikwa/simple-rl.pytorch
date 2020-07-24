@@ -54,9 +54,6 @@ class ReplayBuffer:
         self.next_states = torch.empty(
             (buffer_size, *state_shape), dtype=torch.float, device=device)
 
-    def reset(self, state):
-        pass
-
     def append(self, state, action, reward, done, next_state):
         self.states[self._p] = torch.from_numpy(state)
         self.actions[self._p] = torch.from_numpy(action)

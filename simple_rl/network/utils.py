@@ -48,6 +48,6 @@ def evaluate_lop_pi(means, log_stds, actions):
 
 def reparameterize(means, log_stds):
     stds = log_stds.exp()
-    noises = torch.randn_like(stds)
+    noises = torch.randn_like(means)
     actions = torch.tanh(means + noises * stds)
     return actions, calculate_log_pi(log_stds, noises, actions)

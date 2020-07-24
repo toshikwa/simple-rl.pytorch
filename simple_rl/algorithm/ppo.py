@@ -2,27 +2,21 @@ import numpy as np
 import torch
 from torch import nn
 
-from .base import Algorithm
-from simple_rl.network import StateIndependentGaussianPolicy, StateFunction
-from simple_rl.buffer import RolloutBuffer
+from .base import OnPolicy
+from simple_rl.network import (
+    StateIndependentVarianceGaussianPolicy, StateFunction
+)
 
 
-class PPO(Algorithm):
+class PPO(OnPolicy):
 
-    def __init__(self, state_shape, action_shape, device, lr=3e-4,
-                 batch_size=64, gamma=0.995, rollout_length=2048,
+    def __init__(self, state_shape, action_shape, device, rollout_length=2048,
+                 lr=3e-4, batch_size=64, gamma=0.995,
                  num_updates=10, clip_eps=0.2, lambda_gae=0.97,
                  coef_ent=0.0, max_grad_norm=0.5):
-        super().__init__()
+        super().__init__(state_shape, action_shape, device, rollout_length)
 
-        self.buffer = RolloutBuffer(
-            buffer_size=rollout_length,
-            state_shape=state_shape,
-            action_shape=action_shape,
-            device=device
-        )
-
-        self.actor = StateIndependentGaussianPolicy(
+        self.actor = StateIndependentVarianceGaussianPolicy(
             state_shape=state_shape,
             action_shape=action_shape,
             hidden_units=[64, 64],
@@ -43,15 +37,11 @@ class PPO(Algorithm):
         self.device = device
         self.batch_size = batch_size
         self.gamma = gamma
-        self.rollout_length = rollout_length
         self.num_updates = num_updates
         self.clip_eps = clip_eps
         self.lambda_gae = lambda_gae
         self.coef_ent = coef_ent
         self.max_grad_norm = max_grad_norm
-
-    def is_update(self, steps):
-        return steps % self.rollout_length == 0
 
     def explore(self, state):
         state = torch.tensor(
@@ -59,26 +49,6 @@ class PPO(Algorithm):
         with torch.no_grad():
             action, log_pi = self.actor.sample(state)
         return action.cpu().numpy()[0], log_pi.item()
-
-    def step(self, env, state, t, steps):
-        t += 1
-
-        action, log_pi = self.explore(state)
-        state, reward, done, _ = env.step(action)
-
-        if t == env._max_episode_steps:
-            done_masked = False
-        else:
-            done_masked = done
-
-        if done:
-            t = 0
-            state = env.reset()
-
-        self.buffer.append(
-            state, action, reward, done_masked, log_pi)
-
-        return state, t
 
     def update(self):
         self.learning_steps += 1

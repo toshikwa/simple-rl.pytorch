@@ -10,7 +10,31 @@ from .utils import (
 )
 
 
-class StateIndependentGaussianPolicy(nn.Module):
+class DeterministicPolicy(nn.Module):
+
+    def __init__(self, state_shape, action_shape, hidden_units=[400, 300],
+                 HiddenActivation=nn.ReLU):
+        super().__init__()
+
+        self.net = build_mlp(
+            input_dim=state_shape[0],
+            output_dim=action_shape[0],
+            hidden_units=hidden_units,
+            HiddenActivation=HiddenActivation
+        ).apply(initialize_weights_orthogonal)
+
+    def forward(self, states):
+        means = self.net(states)
+        return torch.tanh(means)
+
+    def sample(self, states):
+        NotImplementedError
+
+    def evaluate_log_pi(self, states, actions):
+        NotImplementedError
+
+
+class StateIndependentVarianceGaussianPolicy(nn.Module):
 
     def __init__(self, state_shape, action_shape, hidden_units=[64, 64],
                  HiddenActivation=nn.Tanh):
@@ -42,7 +66,7 @@ class StateIndependentGaussianPolicy(nn.Module):
         return evaluate_lop_pi(means, self.log_stds, actions)
 
 
-class StateDependentGaussianPolicy(nn.Module):
+class StateDependentVarianceGaussianPolicy(nn.Module):
 
     def __init__(self, state_shape, action_shape, hidden_units=[256, 256],
                  HiddenActivation=partial(nn.ReLU, inplace=True)):
