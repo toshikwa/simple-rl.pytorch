@@ -41,7 +41,7 @@ class Trainer:
         self.algo.buffer.reset(state)
 
         for steps in range(1, self.num_steps + 1):
-            state, t = self.algo.step(self.env, state, t)
+            state, t = self.algo.step(self.env, state, t, steps)
 
             if self.algo.is_update(steps):
                 self.algo.update()

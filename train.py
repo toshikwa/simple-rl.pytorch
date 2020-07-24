@@ -5,7 +5,7 @@ import torch
 import gym
 import pybullet_envs
 
-from simple_rl.algorithm import PPO
+from simple_rl.algorithm import PPO, SAC
 from simple_rl.trainer import Trainer
 
 gym.logger.set_level(40)
@@ -22,9 +22,11 @@ def run(args):
 
     # Specify the directory to log.
     time = datetime.now().strftime("%Y%m%d-%H%M")
-    log_dir = os.path.join('logs', args.env_id, f'ppo-seed{args.seed}-{time}')
+    log_dir = os.path.join(
+        'logs', args.env_id, f'{args.algo}-seed{args.seed}-{time}')
 
-    algo = PPO(
+    ALGO = PPO if args.algo == 'ppo' else SAC
+    algo = ALGO(
         state_shape=env.observation_space.shape,
         action_shape=env.action_space.shape,
         device=device
@@ -44,6 +46,7 @@ def run(args):
 if __name__ == '__main__':
     p = argparse.ArgumentParser()
     p.add_argument('--env_id', type=str, default='HalfCheetahBulletEnv-v0')
+    p.add_argument('--algo', type=str, default='ppo')
     p.add_argument('--cuda', action='store_true')
     p.add_argument('--seed', type=int, default=0)
     args = p.parse_args()

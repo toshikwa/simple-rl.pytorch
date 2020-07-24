@@ -8,7 +8,7 @@ from .utils import (
 )
 
 
-class StateFunction(torch.jit.ScriptModule):
+class StateFunction(nn.Module):
 
     def __init__(self, state_shape, hidden_units=[64, 64],
                  HiddenActivation=nn.Tanh):
@@ -21,12 +21,11 @@ class StateFunction(torch.jit.ScriptModule):
             HiddenActivation=HiddenActivation
         ).apply(initialize_weights_orthogonal)
 
-    @torch.jit.script_method
     def forward(self, states):
         return self.net(states)
 
 
-class StateActionFunction(torch.jit.ScriptModule):
+class StateActionFunction(nn.Module):
 
     def __init__(self, state_shape, action_shape, hidden_units=[256, 256],
                  HiddenActivation=partial(nn.ReLU, inplace=True)):
@@ -39,13 +38,12 @@ class StateActionFunction(torch.jit.ScriptModule):
             HiddenActivation=HiddenActivation
         ).apply(initialize_weights_orthogonal)
 
-    @torch.jit.script_method
     def forward(self, states, actions):
         x = torch.cat([states, actions], dim=-1)
         return self.net(x)
 
 
-class TwinnedStateActionFunction(torch.jit.ScriptModule):
+class TwinnedStateActionFunction(nn.Module):
 
     def __init__(self, state_shape, action_shape, hidden_units=[256, 256],
                  HiddenActivation=partial(nn.ReLU, inplace=True)):
@@ -65,7 +63,6 @@ class TwinnedStateActionFunction(torch.jit.ScriptModule):
             HiddenActivation=HiddenActivation
         ).apply(initialize_weights_orthogonal)
 
-    @torch.jit.script_method
     def forward(self, states, actions):
         x = torch.cat([states, actions], dim=-1)
         return self.net1(x), self.net2(x)

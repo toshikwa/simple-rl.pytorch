@@ -2,11 +2,12 @@ import numpy as np
 import torch
 from torch import nn
 
-from simple_rl.network import SteteIndependentGaussianPolicy, StateFunction
-from simple_rl.buffer import Buffer
+from .base import Algorithm
+from simple_rl.network import StateIndependentGaussianPolicy, StateFunction
+from simple_rl.buffer import RolloutBuffer
 
 
-class PPO:
+class PPO(Algorithm):
 
     def __init__(self, state_shape, action_shape, device, lr=3e-4,
                  batch_size=64, gamma=0.995, rollout_length=2048,
@@ -14,15 +15,14 @@ class PPO:
                  coef_ent=0.0, max_grad_norm=0.5):
         super().__init__()
 
-        self.buffer = Buffer(
+        self.buffer = RolloutBuffer(
             buffer_size=rollout_length,
             state_shape=state_shape,
             action_shape=action_shape,
-            device=device,
-            save_log_pi=True
+            device=device
         )
 
-        self.actor = SteteIndependentGaussianPolicy(
+        self.actor = StateIndependentGaussianPolicy(
             state_shape=state_shape,
             action_shape=action_shape,
             hidden_units=[64, 64],
@@ -53,26 +53,6 @@ class PPO:
     def is_update(self, steps):
         return steps % self.rollout_length == 0
 
-    def step(self, env, state, t):
-        t += 1
-
-        action, log_pi = self.explore(state)
-        next_state, reward, done, _ = env.step(action)
-
-        if t + 1 == env._max_episode_steps:
-            done_masked = False
-        else:
-            done_masked = done
-
-        if done:
-            t = 0
-            next_state = env.reset()
-
-        self.buffer.append(
-            next_state, action, reward, done_masked, log_pi)
-
-        return next_state, t
-
     def explore(self, state):
         state = torch.tensor(
             state.copy(), dtype=torch.float, device=self.device).unsqueeze_(0)
@@ -80,12 +60,25 @@ class PPO:
             action, log_pi = self.actor.sample(state)
         return action.cpu().numpy()[0], log_pi.item()
 
-    def exploit(self, state):
-        state = torch.tensor(
-            state.copy(), dtype=torch.float, device=self.device).unsqueeze_(0)
-        with torch.no_grad():
-            action = self.actor(state)
-        return action.cpu().numpy()[0]
+    def step(self, env, state, t, steps):
+        t += 1
+
+        action, log_pi = self.explore(state)
+        state, reward, done, _ = env.step(action)
+
+        if t == env._max_episode_steps:
+            done_masked = False
+        else:
+            done_masked = done
+
+        if done:
+            t = 0
+            state = env.reset()
+
+        self.buffer.append(
+            state, action, reward, done_masked, log_pi)
+
+        return state, t
 
     def update(self):
         self.learning_steps += 1
@@ -142,14 +135,14 @@ class PPO:
             values = self.critic(self.buffer.states)
 
         targets = torch.empty_like(self.buffer.rewards)
-        adv = torch.zeros_like(targets[0])
+        adv = 0
 
         for t in reversed(range(self.rollout_length)):
-            error = self.buffer.rewards[t] + self.gamma \
-                * values[t + 1] * (1 - self.buffer.dones[t]) - values[t]
+            error = self.buffer.rewards[t] + self.gamma * \
+                values[t + 1] * (1 - self.buffer.dones[t]) - values[t]
             adv = error + \
                 self.gamma * self.lambda_gae * (1 - self.buffer.dones[t]) * adv
-            targets[t].copy_(adv + values[t])
+            targets[t] = adv + values[t]
 
         advantages = targets - values[:-1]
         mean, std = advantages.mean(), advantages.std()

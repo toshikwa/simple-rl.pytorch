@@ -9,8 +9,14 @@ def initialize_weights_orthogonal(m, gain=1.41):
         nn.init.constant_(m.bias.data, 0)
 
 
+def initialize_weights_xavier(m, gain=1.0):
+    if isinstance(m, nn.Linear):
+        nn.init.xavier_uniform_(m.weight.data, gain=gain)
+        nn.init.constant_(m.bias.data, 0)
+
+
 def build_mlp(input_dim, output_dim, hidden_units=[64, 64],
-              HiddenActivation=nn.ReLU):
+              HiddenActivation=nn.Tanh):
     layers = []
     units = input_dim
     for next_units in hidden_units:

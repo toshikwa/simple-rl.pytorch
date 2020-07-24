@@ -1,5 +1,5 @@
 from .policy import (
-    SteteDependentGaussianPolicy, SteteIndependentGaussianPolicy
+    StateDependentGaussianPolicy, StateIndependentGaussianPolicy
 )
 from .value import (
     StateFunction, TwinnedStateActionFunction

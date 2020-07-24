@@ -10,7 +10,7 @@ from .utils import (
 )
 
 
-class SteteIndependentGaussianPolicy(torch.jit.ScriptModule):
+class StateIndependentGaussianPolicy(nn.Module):
 
     def __init__(self, state_shape, action_shape, hidden_units=[64, 64],
                  HiddenActivation=nn.Tanh):
@@ -24,28 +24,25 @@ class SteteIndependentGaussianPolicy(torch.jit.ScriptModule):
         ).apply(initialize_weights_orthogonal)
 
         self.net[-1].apply(
-            partial(initialize_weights_orthogonal, gain=1.41 * 1e-2)
+            partial(initialize_weights_orthogonal, gain=1.41 * 0.01)
         )
         self.log_stds = nn.Parameter(torch.zeros(1, action_shape[0]))
 
-    @torch.jit.script_method
     def forward(self, states):
         means = self.net(states)
         return torch.tanh(means)
 
-    @torch.jit.script_method
     def sample(self, states):
         means = self.net(states)
         actions, log_pis = reparameterize(means, self.log_stds)
         return actions, log_pis
 
-    @torch.jit.script_method
     def evaluate_log_pi(self, states, actions):
         means = self.net(states)
         return evaluate_lop_pi(means, self.log_stds, actions)
 
 
-class SteteDependentGaussianPolicy(torch.jit.ScriptModule):
+class StateDependentGaussianPolicy(nn.Module):
 
     def __init__(self, state_shape, action_shape, hidden_units=[256, 256],
                  HiddenActivation=partial(nn.ReLU, inplace=True)):
@@ -58,18 +55,15 @@ class SteteDependentGaussianPolicy(torch.jit.ScriptModule):
             HiddenActivation=HiddenActivation
         ).apply(initialize_weights_orthogonal)
 
-    @torch.jit.script_method
     def forward(self, states):
-        means, _ = torch.chunk(self.net(states), 2, dim=-1)
+        means, _ = self.net(states).chunk(2, dim=-1)
         return torch.tanh(means)
 
-    @torch.jit.script_method
     def sample(self, states):
-        means, log_stds = torch.chunk(self.net(states), 2, dim=-1)
+        means, log_stds = self.net(states).chunk(2, dim=-1)
         actions, log_pis = reparameterize(means, log_stds.clamp_(-20, 2))
         return actions, log_pis
 
-    @torch.jit.script_method
     def evaluate_log_pi(self, states, actions):
-        means, log_stds = torch.chunk(self.net(states), 2, dim=-1)
-        return evaluate_lop_pi(means, log_stds, actions)
+        means, log_stds = self.net(states).chunk(2, dim=-1)
+        return evaluate_lop_pi(means, log_stds.clamp_(-20, 2), actions)
