@@ -1,0 +1,50 @@
+import os
+import argparse
+from datetime import datetime
+import torch
+import gym
+import pybullet_envs
+
+from simple_rl.algorithm import PPO
+from simple_rl.trainer import Trainer
+
+gym.logger.set_level(40)
+
+
+def run(args):
+    # Create environments.
+    env = gym.make(args.env_id)
+    env_test = gym.make(args.env_id)
+
+    # Device to use.
+    device = torch.device(
+        "cuda" if args.cuda and torch.cuda.is_available() else "cpu")
+
+    # Specify the directory to log.
+    time = datetime.now().strftime("%Y%m%d-%H%M")
+    log_dir = os.path.join('logs', args.env_id, f'ppo-seed{args.seed}-{time}')
+
+    algo = PPO(
+        state_shape=env.observation_space.shape,
+        action_shape=env.action_space.shape,
+        device=device
+    )
+
+    trainer = Trainer(
+        env=env,
+        env_test=env_test,
+        algo=algo,
+        device=device,
+        log_dir=log_dir,
+        seed=args.seed
+    )
+    trainer.train()
+
+
+if __name__ == '__main__':
+    p = argparse.ArgumentParser()
+    p.add_argument('--env_id', type=str, default='HalfCheetahBulletEnv-v0')
+    p.add_argument('--cuda', action='store_true')
+    p.add_argument('--seed', type=int, default=0)
+    args = p.parse_args()
+    run(args)
