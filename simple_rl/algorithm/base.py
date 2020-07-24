@@ -77,7 +77,7 @@ class OnPolicy(Algorithm):
 class OffPolicy(Algorithm):
 
     def __init__(self, state_shape, action_shape, device, replay_size=10**6,
-                 start_steps=10**4):
+                 start_steps=10**4, batch_size=256):
 
         self.buffer = ReplayBuffer(
             buffer_size=replay_size,
@@ -85,7 +85,8 @@ class OffPolicy(Algorithm):
             action_shape=action_shape,
             device=device,
         )
-        self.start_steps = start_steps
+        self.start_steps = max(start_steps, batch_size)
+        self.batch_size = batch_size
 
     def reset(self, state):
         pass

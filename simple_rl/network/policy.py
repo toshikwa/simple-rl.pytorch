@@ -13,7 +13,7 @@ from .utils import (
 class DeterministicPolicy(nn.Module):
 
     def __init__(self, state_shape, action_shape, hidden_units=[400, 300],
-                 HiddenActivation=nn.ReLU):
+                 HiddenActivation=partial(nn.ReLU, inplace=True)):
         super().__init__()
 
         self.net = build_mlp(
@@ -27,8 +27,10 @@ class DeterministicPolicy(nn.Module):
         means = self.net(states)
         return torch.tanh(means)
 
-    def sample(self, states):
-        NotImplementedError
+    def sample(self, states, std):
+        actions = self.forward(states)
+        actions.add_(torch.randn_like(actions) * std)
+        return actions.clamp_(-1.0, 1.0)
 
     def evaluate_log_pi(self, states, actions):
         NotImplementedError

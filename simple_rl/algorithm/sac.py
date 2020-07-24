@@ -1,4 +1,6 @@
+from functools import partial
 import torch
+from torch import nn
 
 from .base import OffPolicy
 from simple_rl.network import (
@@ -10,41 +12,47 @@ from simple_rl.utils import soft_update, disable_gradient
 class SAC(OffPolicy):
 
     def __init__(self, state_shape, action_shape, device, replay_size=10**6,
-                 start_steps=10**4, batch_size=256, lr=3e-4, gamma=0.99,
-                 target_update_coef=0.005):
+                 start_steps=10**4, batch_size=256, lr_actor=3e-4,
+                 lr_critic=3e-4, lr_alpha=3e-4, gamma=0.99,
+                 target_update_coef=5e-3):
         super().__init__(
-            state_shape, action_shape, device, replay_size, start_steps)
+            state_shape, action_shape, device, replay_size, start_steps,
+            batch_size)
 
         self.actor = StateDependentVarianceGaussianPolicy(
             state_shape=state_shape,
             action_shape=action_shape,
-            hidden_units=[256, 256]
+            hidden_units=[256, 256],
+            HiddenActivation=partial(nn.ReLU, inplace=True)
         ).to(device)
         self.critic = TwinnedStateActionFunction(
             state_shape=state_shape,
             action_shape=action_shape,
-            hidden_units=[256, 256]
+            hidden_units=[256, 256],
+            HiddenActivation=partial(nn.ReLU, inplace=True)
         ).to(device)
         self.critic_target = TwinnedStateActionFunction(
             state_shape=state_shape,
             action_shape=action_shape,
-            hidden_units=[256, 256]
+            hidden_units=[256, 256],
+            HiddenActivation=partial(nn.ReLU, inplace=True)
         ).to(device).eval()
 
         self.critic_target.load_state_dict(self.critic.state_dict())
         disable_gradient(self.critic_target)
 
-        self.optim_actor = torch.optim.Adam(self.actor.parameters(), lr=lr)
-        self.optim_critic = torch.optim.Adam(self.critic.parameters(), lr=lr)
+        self.optim_actor = torch.optim.Adam(
+            self.actor.parameters(), lr=lr_actor)
+        self.optim_critic = torch.optim.Adam(
+            self.critic.parameters(), lr=lr_critic)
 
         self.alpha = 1.0
         self.log_alpha = torch.zeros(1, device=device, requires_grad=True)
-        self.optim_alpha = torch.optim.Adam([self.log_alpha], lr=lr)
+        self.optim_alpha = torch.optim.Adam([self.log_alpha], lr=lr_alpha)
         self.target_entropy = -float(action_shape[0])
 
         self.learning_steps = 0
         self.device = device
-        self.batch_size = batch_size
         self.gamma = gamma
         self.target_update_coef = target_update_coef
 
