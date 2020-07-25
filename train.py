@@ -36,6 +36,7 @@ def run(args):
         algo=algo,
         device=device,
         log_dir=log_dir,
+        num_steps=args.num_steps,
         seed=args.seed
     )
     trainer.train()
@@ -43,8 +44,9 @@ def run(args):
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser()
-    p.add_argument('--env_id', type=str, default='HalfCheetah-v2')
-    p.add_argument('--algo', type=str, default='ppo')
+    p.add_argument('--num_steps', type=int, default=3*10**6)
+    p.add_argument('--env_id', type=str, default='HalfCheetah-v3')
+    p.add_argument('--algo', type=str, default='ddpg')
     p.add_argument('--cuda', action='store_true')
     p.add_argument('--seed', type=int, default=0)
     args = p.parse_args()

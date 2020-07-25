@@ -2,10 +2,7 @@ from functools import partial
 import torch
 from torch import nn
 
-from .utils import (
-    initialize_weights_orthogonal,
-    build_mlp
-)
+from .utils import build_mlp
 
 
 class StateFunction(nn.Module):
@@ -19,7 +16,7 @@ class StateFunction(nn.Module):
             output_dim=1,
             hidden_units=hidden_units,
             HiddenActivation=HiddenActivation
-        ).apply(initialize_weights_orthogonal)
+        )
 
     def forward(self, states):
         return self.net(states)
@@ -36,7 +33,7 @@ class StateActionFunction(nn.Module):
             output_dim=1,
             hidden_units=hidden_units,
             HiddenActivation=HiddenActivation
-        ).apply(initialize_weights_orthogonal)
+        )
 
     def forward(self, states, actions):
         x = torch.cat([states, actions], dim=-1)
@@ -54,14 +51,14 @@ class TwinnedStateActionFunction(nn.Module):
             output_dim=1,
             hidden_units=hidden_units,
             HiddenActivation=HiddenActivation
-        ).apply(initialize_weights_orthogonal)
+        )
 
         self.net2 = build_mlp(
             input_dim=state_shape[0] + action_shape[0],
             output_dim=1,
             hidden_units=hidden_units,
             HiddenActivation=HiddenActivation
-        ).apply(initialize_weights_orthogonal)
+        )
 
     def forward(self, states, actions):
         x = torch.cat([states, actions], dim=-1)

@@ -1,6 +1,7 @@
 import math
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 
 def initialize_weights_orthogonal(m, gain=1.41):
@@ -32,9 +33,10 @@ def calculate_gaussian_log_prob(log_stds, noises):
         - 0.5 * math.log(2 * math.pi) * log_stds.size(-1)
 
 
-def calculate_log_pi(log_stds, noises, actions):
-    return calculate_gaussian_log_prob(log_stds, noises) \
-        - torch.log(1 - actions.pow(2) + 1e-6).sum(dim=-1, keepdim=True)
+def calculate_log_pi(log_stds, noises, us):
+    return calculate_gaussian_log_prob(log_stds, noises) - (
+        2 * (math.log(2) - us - F.softplus(-2 * us))
+    ).sum(dim=-1, keepdim=True)
 
 
 def atanh(x):
@@ -42,12 +44,14 @@ def atanh(x):
 
 
 def evaluate_lop_pi(means, log_stds, actions):
-    noises = (atanh(actions) - means) / (log_stds.exp() + 1e-8)
-    return calculate_log_pi(log_stds, noises, actions)
+    us = atanh(actions)
+    noises = (us - means) / (log_stds.exp() + 1e-8)
+    return calculate_log_pi(log_stds, noises, us)
 
 
 def reparameterize(means, log_stds):
     stds = log_stds.exp()
     noises = torch.randn_like(means)
-    actions = torch.tanh(means + noises * stds)
-    return actions, calculate_log_pi(log_stds, noises, actions)
+    us = means + noises * stds
+    actions = torch.tanh(us)
+    return actions, calculate_log_pi(log_stds, noises, us)

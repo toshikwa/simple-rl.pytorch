@@ -2,12 +2,7 @@ from functools import partial
 import torch
 from torch import nn
 
-from .utils import (
-    initialize_weights_orthogonal,
-    build_mlp,
-    reparameterize,
-    evaluate_lop_pi
-)
+from .utils import build_mlp, reparameterize, evaluate_lop_pi
 
 
 class DeterministicPolicy(nn.Module):
@@ -21,7 +16,7 @@ class DeterministicPolicy(nn.Module):
             output_dim=action_shape[0],
             hidden_units=hidden_units,
             HiddenActivation=HiddenActivation
-        ).apply(initialize_weights_orthogonal)
+        )
 
     def forward(self, states):
         means = self.net(states)
@@ -46,11 +41,8 @@ class StateIndependentVarianceGaussianPolicy(nn.Module):
             output_dim=action_shape[0],
             hidden_units=hidden_units,
             HiddenActivation=HiddenActivation
-        ).apply(initialize_weights_orthogonal)
-
-        self.net[-1].apply(
-            partial(initialize_weights_orthogonal, gain=1.41 * 0.01)
         )
+
         self.log_stds = nn.Parameter(torch.zeros(1, action_shape[0]))
 
     def forward(self, states):
@@ -78,7 +70,7 @@ class StateDependentVarianceGaussianPolicy(nn.Module):
             output_dim=2 * action_shape[0],
             hidden_units=hidden_units,
             HiddenActivation=HiddenActivation
-        ).apply(initialize_weights_orthogonal)
+        )
 
     def forward(self, states):
         means, _ = self.net(states).chunk(2, dim=-1)
