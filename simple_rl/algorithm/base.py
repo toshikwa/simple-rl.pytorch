@@ -6,6 +6,31 @@ from simple_rl.buffer import RolloutBuffer, ReplayBuffer
 
 class Algorithm(ABC):
 
+    def __init__(self, state_shape, action_shape, device, batch_size, gamma,
+                 lr_actor, lr_critic):
+        self.learning_steps = 0
+        self.state_shape = state_shape
+        self.action_shape = action_shape
+        self.device = device
+        self.batch_size = batch_size
+        self.gamma = gamma
+
+        self._build_actor()
+        self._build_critic()
+
+        self.optim_actor = torch.optim.Adam(
+            self.actor.parameters(), lr=lr_actor)
+        self.optim_critic = torch.optim.Adam(
+            self.critic.parameters(), lr=lr_critic)
+
+    @abstractmethod
+    def _build_actor(self):
+        self.actor = None
+
+    @abstractmethod
+    def _build_critic(self):
+        self.critic = None
+
     @abstractmethod
     def is_update(self, steps):
         pass
@@ -36,8 +61,11 @@ class Algorithm(ABC):
 
 class OnPolicy(Algorithm):
 
-    def __init__(self, state_shape, action_shape, device,
-                 rollout_length=10**6):
+    def __init__(self, state_shape, action_shape, device, batch_size, gamma,
+                 lr_actor, lr_critic, rollout_length=10**6):
+        super().__init__(
+            state_shape, action_shape, device, batch_size, gamma,
+            lr_actor, lr_critic)
 
         self.buffer = RolloutBuffer(
             buffer_size=rollout_length,
@@ -76,8 +104,11 @@ class OnPolicy(Algorithm):
 
 class OffPolicy(Algorithm):
 
-    def __init__(self, state_shape, action_shape, device, replay_size=10**6,
-                 start_steps=10**4, batch_size=256):
+    def __init__(self, state_shape, action_shape, device, batch_size, gamma,
+                 lr_actor, lr_critic, replay_size=10**6, start_steps=10**4):
+        super().__init__(
+            state_shape, action_shape, device, batch_size, gamma,
+            lr_actor, lr_critic)
 
         self.buffer = ReplayBuffer(
             buffer_size=replay_size,
@@ -86,7 +117,6 @@ class OffPolicy(Algorithm):
             device=device,
         )
         self.start_steps = start_steps
-        self.batch_size = batch_size
 
     def reset(self, state):
         pass

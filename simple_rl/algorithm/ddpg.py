@@ -11,60 +11,49 @@ from simple_rl.utils import soft_update, disable_gradient
 
 class DDPG(OffPolicy):
 
-    def __init__(self, state_shape, action_shape, device, replay_size=10**6,
-                 start_steps=10**4, batch_size=128, lr_actor=1e-3,
-                 lr_critic=1e-3, gamma=0.99, std=0.1, target_update_coef=5e-3):
+    def __init__(self, state_shape, action_shape, device, batch_size=128,
+                 gamma=0.99, lr_actor=1e-3, lr_critic=1e-3, replay_size=10**6,
+                 start_steps=10**4, std=0.1, target_update_coef=5e-3):
         super().__init__(
-            state_shape, action_shape, device, replay_size, start_steps,
-            batch_size)
+            state_shape, action_shape, device, batch_size, gamma, lr_actor,
+            lr_critic, replay_size, start_steps)
 
-        self._build_actor(state_shape, action_shape, device)
-        self._build_critic(state_shape, action_shape, device)
+        self.std = std
+        self.target_update_coef = target_update_coef
+
+    def _build_actor(self):
+        self.actor = DeterministicPolicy(
+            state_shape=self.state_shape,
+            action_shape=self.action_shape,
+            hidden_units=[400, 300],
+            HiddenActivation=partial(nn.ReLU, inplace=True)
+        ).to(self.device)
+        self.actor_target = DeterministicPolicy(
+            state_shape=self.state_shape,
+            action_shape=self.action_shape,
+            hidden_units=[400, 300],
+            HiddenActivation=partial(nn.ReLU, inplace=True)
+        ).to(self.device)
 
         self.actor_target.load_state_dict(self.actor.state_dict())
         disable_gradient(self.actor_target)
 
+    def _build_critic(self):
+        self.critic = StateActionFunction(
+            state_shape=self.state_shape,
+            action_shape=self.action_shape,
+            hidden_units=[400, 300],
+            HiddenActivation=partial(nn.ReLU, inplace=True)
+        ).to(self.device)
+        self.critic_target = StateActionFunction(
+            state_shape=self.state_shape,
+            action_shape=self.action_shape,
+            hidden_units=[400, 300],
+            HiddenActivation=partial(nn.ReLU, inplace=True)
+        ).to(self.device).eval()
+
         self.critic_target.load_state_dict(self.critic.state_dict())
         disable_gradient(self.critic_target)
-
-        self.optim_actor = torch.optim.Adam(
-            self.actor.parameters(), lr=lr_actor)
-        self.optim_critic = torch.optim.Adam(
-            self.critic.parameters(), lr=lr_critic)
-
-        self.learning_steps = 0
-        self.device = device
-        self.gamma = gamma
-        self.std = std
-        self.target_update_coef = target_update_coef
-
-    def _build_actor(self, state_shape, action_shape, device):
-        self.actor = DeterministicPolicy(
-            state_shape=state_shape,
-            action_shape=action_shape,
-            hidden_units=[400, 300],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
-        ).to(device)
-        self.actor_target = DeterministicPolicy(
-            state_shape=state_shape,
-            action_shape=action_shape,
-            hidden_units=[400, 300],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
-        ).to(device)
-
-    def _build_critic(self, state_shape, action_shape, device):
-        self.critic = StateActionFunction(
-            state_shape=state_shape,
-            action_shape=action_shape,
-            hidden_units=[400, 300],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
-        ).to(device)
-        self.critic_target = StateActionFunction(
-            state_shape=state_shape,
-            action_shape=action_shape,
-            hidden_units=[400, 300],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
-        ).to(device).eval()
 
     def explore(self, state):
         state = torch.tensor(

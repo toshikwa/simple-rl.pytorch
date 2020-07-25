@@ -10,38 +10,34 @@ from simple_rl.network import (
 
 class PPO(OnPolicy):
 
-    def __init__(self, state_shape, action_shape, device, rollout_length=2048,
-                 lr=3e-4, batch_size=64, gamma=0.995,
-                 num_updates=10, clip_eps=0.2, lambda_gae=0.97,
-                 coef_ent=0.0, max_grad_norm=0.5):
-        super().__init__(state_shape, action_shape, device, rollout_length)
+    def __init__(self, state_shape, action_shape, device, batch_size=64,
+                 gamma=0.995, lr_actor=3e-4, lr_critic=3e-4,
+                 rollout_length=2048, num_updates=10, clip_eps=0.2,
+                 lambda_gae=0.97, coef_ent=0.0, max_grad_norm=0.5):
+        super().__init__(
+            state_shape, action_shape, device, batch_size, gamma,
+            lr_actor, lr_critic, rollout_length)
 
-        self.actor = StateIndependentVarianceGaussianPolicy(
-            state_shape=state_shape,
-            action_shape=action_shape,
-            hidden_units=[64, 64],
-            HiddenActivation=nn.Tanh
-        ).to(device)
-        self.critic = StateFunction(
-            state_shape=state_shape,
-            hidden_units=[64, 64],
-            HiddenActivation=nn.Tanh
-        ).to(device)
-
-        self.optim_actor = torch.optim.Adam(
-            self.actor.parameters(), lr=lr, eps=1e-7)
-        self.optim_critic = torch.optim.Adam(
-            self.critic.parameters(), lr=lr, eps=1e-7)
-
-        self.learning_steps = 0
-        self.device = device
-        self.batch_size = batch_size
-        self.gamma = gamma
         self.num_updates = num_updates
         self.clip_eps = clip_eps
         self.lambda_gae = lambda_gae
         self.coef_ent = coef_ent
         self.max_grad_norm = max_grad_norm
+
+    def _build_actor(self):
+        self.actor = StateIndependentVarianceGaussianPolicy(
+            state_shape=self.state_shape,
+            action_shape=self.action_shape,
+            hidden_units=[64, 64],
+            HiddenActivation=nn.Tanh
+        ).to(self.device)
+
+    def _build_critic(self):
+        self.critic = StateFunction(
+            state_shape=self.state_shape,
+            hidden_units=[64, 64],
+            HiddenActivation=nn.Tanh
+        ).to(self.device)
 
     def explore(self, state):
         state = torch.tensor(

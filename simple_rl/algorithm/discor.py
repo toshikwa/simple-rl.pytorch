@@ -9,15 +9,13 @@ from simple_rl.utils import soft_update, disable_gradient
 
 class DisCor(SAC):
 
-    def __init__(self, state_shape, action_shape, device, replay_size=10**6,
-                 start_steps=10**4, batch_size=256, lr_actor=3e-4,
-                 lr_critic=3e-4, lr_alpha=3e-4, lr_error=3e-4, gamma=0.99,
-                 update_interval_error=1, tau_init=10.0,
-                 target_update_coef=5e-3):
+    def __init__(self, state_shape, action_shape, device, batch_size=256,
+                 gamma=0.99, lr_actor=3e-4, lr_critic=3e-4, replay_size=10**6,
+                 start_steps=10**4, lr_alpha=3e-4, target_update_coef=5e-3,
+                 lr_error=3e-4, update_interval_error=1, tau_init=10.0):
         super().__init__(
-            state_shape, action_shape, device, replay_size, start_steps,
-            batch_size, lr_actor, lr_critic, lr_alpha, gamma,
-            target_update_coef)
+            state_shape, action_shape, device, batch_size, gamma, lr_actor,
+            lr_critic, replay_size, start_steps, lr_alpha, target_update_coef)
 
         self.error = TwinnedStateActionFunction(
             state_shape=state_shape,

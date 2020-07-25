@@ -3,7 +3,6 @@ import argparse
 from datetime import datetime
 import torch
 import gym
-import pybullet_envs
 
 from simple_rl.algorithm import ALGORITHMS
 from simple_rl.trainer import Trainer
@@ -44,7 +43,7 @@ def run(args):
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser()
-    p.add_argument('--env_id', type=str, default='HalfCheetahBulletEnv-v0')
+    p.add_argument('--env_id', type=str, default='HalfCheetah-v2')
     p.add_argument('--algo', type=str, default='ppo')
     p.add_argument('--cuda', action='store_true')
     p.add_argument('--seed', type=int, default=0)
