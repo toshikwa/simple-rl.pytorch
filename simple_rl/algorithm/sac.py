@@ -95,7 +95,7 @@ class SAC(OffPolicy):
         self.optim_actor.step()
 
         loss_alpha = -self.log_alpha * (
-            self.target_entropy * log_pis.size(0) + log_pis.detach().mean()
+            self.target_entropy + log_pis.detach().mean()
         )
 
         self.optim_alpha.zero_grad()
