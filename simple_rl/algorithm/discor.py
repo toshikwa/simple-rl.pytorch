@@ -1,6 +1,7 @@
 from functools import partial
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 from .sac import SAC
 from simple_rl.network import TwinnedStateActionFunction
@@ -70,10 +71,7 @@ class DisCor(SAC):
         x1 = -(1.0 - dones) * self.gamma * next_errors1 / (self.tau1 + 1e-8)
         x2 = -(1.0 - dones) * self.gamma * next_errors2 / (self.tau2 + 1e-8)
 
-        imp_ws1 = torch.nn.functional.softmax(x1, dim=0)
-        imp_ws2 = torch.nn.functional.softmax(x2, dim=0)
-
-        return imp_ws1, imp_ws2
+        return F.softmax(x1, dim=0), F.softmax(x2, dim=0)
 
     def update_critic(self, states, actions, rewards, dones, next_states):
         curr_qs1, curr_qs2 = self.critic(states, actions)
@@ -116,14 +114,11 @@ class DisCor(SAC):
 
         mean_errors1 = curr_errors1.detach_().mean()
         mean_errors2 = curr_errors2.detach_().mean()
-        self.tau1.data.copy_(
-            self.tau1.data * (1.0 - self.target_update_coef)
-            + mean_errors1.data * self.target_update_coef
-        )
-        self.tau2.data.copy_(
-            self.tau2.data * (1.0 - self.target_update_coef)
-            + mean_errors2.data * self.target_update_coef
-        )
+
+        self.tau1.data.mul_(1.0 - self.target_update_coef)
+        self.tau1.data.add_(self.target_update_coef * mean_errors1.data)
+        self.tau2.data.mul_(1.0 - self.target_update_coef)
+        self.tau2.data.add_(self.target_update_coef * mean_errors2.data)
 
     def update_target(self):
         soft_update(

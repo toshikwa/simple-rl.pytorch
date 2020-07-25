@@ -45,7 +45,7 @@ class Algorithm(ABC):
 
     def exploit(self, state):
         state = torch.tensor(
-            state.copy(), dtype=torch.float, device=self.device).unsqueeze_(0)
+            state, dtype=torch.float, device=self.device).unsqueeze_(0)
         with torch.no_grad():
             action = self.actor(state)
         return action.cpu().numpy()[0]

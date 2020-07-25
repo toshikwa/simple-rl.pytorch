@@ -18,6 +18,11 @@ class PPO(OnPolicy):
             state_shape, action_shape, device, batch_size, gamma,
             lr_actor, lr_critic, rollout_length)
 
+        self.targets = torch.empty(
+            (rollout_length, 1), dtype=torch.float, device=device)
+        self.advantages = torch.empty(
+            (rollout_length, 1), dtype=torch.float, device=device)
+
         self.num_updates = num_updates
         self.clip_eps = clip_eps
         self.lambda_gae = lambda_gae
@@ -41,7 +46,7 @@ class PPO(OnPolicy):
 
     def explore(self, state):
         state = torch.tensor(
-            state.copy(), dtype=torch.float, device=self.device).unsqueeze_(0)
+            state, dtype=torch.float, device=self.device).unsqueeze_(0)
         with torch.no_grad():
             action, log_pi = self.actor.sample(state)
         return action.cpu().numpy()[0], log_pi.item()
@@ -49,8 +54,7 @@ class PPO(OnPolicy):
     def update(self):
         self.learning_steps += 1
 
-        targets, advantages = self.calculate_gae()
-
+        self.calculate_gae()
         for _ in range(self.num_updates):
             indices = np.arange(self.rollout_length)
             np.random.shuffle(indices)
@@ -59,13 +63,13 @@ class PPO(OnPolicy):
                 idxes = indices[start:start+self.batch_size]
                 self.update_critic(
                     self.buffer.states[idxes],
-                    targets[idxes]
+                    self.targets[idxes]
                 )
                 self.update_actor(
                     self.buffer.states[idxes],
                     self.buffer.actions[idxes],
                     self.buffer.log_pis[idxes],
-                    advantages[idxes]
+                    self.advantages[idxes]
                 )
 
     def update_critic(self, states, targets):
@@ -100,17 +104,14 @@ class PPO(OnPolicy):
         with torch.no_grad():
             values = self.critic(self.buffer.states)
 
-        targets = torch.empty_like(self.buffer.rewards)
         adv = 0
-
         for t in reversed(range(self.rollout_length)):
             error = self.buffer.rewards[t] + self.gamma * \
                 values[t + 1] * (1 - self.buffer.dones[t]) - values[t]
             adv = error + \
                 self.gamma * self.lambda_gae * (1 - self.buffer.dones[t]) * adv
-            targets[t] = adv + values[t]
+            self.targets[t].copy_(adv + values[t])
 
-        advantages = targets - values[:-1]
-        mean, std = advantages.mean(), advantages.std()
-        advantages = (advantages - mean) / (std + 1e-8)
-        return targets, advantages
+        self.advantages.copy_(self.targets - values[:-1])
+        mean, std = self.advantages.mean(), self.advantages.std()
+        self.advantages.add_(-mean).div_(std + 1e-8)

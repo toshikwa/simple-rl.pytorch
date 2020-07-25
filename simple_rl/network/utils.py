@@ -56,7 +56,7 @@ def atanh(x):
 
 def evaluate_lop_pi(means, log_stds, actions):
     us = atanh(actions)
-    noises = (us - means) / (log_stds.exp() + 1e-8)
+    noises = (us - means).div_(log_stds.exp() + 1e-8)
     return calculate_log_pi(log_stds, noises, us)
 
 
