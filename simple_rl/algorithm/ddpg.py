@@ -12,8 +12,8 @@ from simple_rl.utils import soft_update, disable_gradient
 class DDPG(OffPolicy):
 
     def __init__(self, state_shape, action_shape, device, replay_size=10**6,
-                 start_steps=0, batch_size=256, lr_actor=3e-4, lr_critic=3e-4,
-                 gamma=0.99, std=0.1, target_update_coef=5e-3):
+                 start_steps=10**4, batch_size=128, lr_actor=1e-3,
+                 lr_critic=1e-3, gamma=0.99, std=0.1, target_update_coef=5e-3):
         super().__init__(
             state_shape, action_shape, device, replay_size, start_steps,
             batch_size)
@@ -97,8 +97,7 @@ class DDPG(OffPolicy):
         self.optim_critic.step()
 
     def update_actor(self, states):
-        actions = self.actor(states)
-        loss_actor = -self.critic(states, actions).mean()
+        loss_actor = -self.critic(states, self.actor(states)).mean()
 
         self.optim_actor.zero_grad()
         loss_actor.backward(retain_graph=False)

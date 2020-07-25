@@ -9,15 +9,16 @@ from simple_rl.network import TwinnedStateActionFunction
 class TD3(DDPG):
 
     def __init__(self, state_shape, action_shape, device, replay_size=10**6,
-                 start_steps=0, batch_size=256, lr_actor=3e-4, lr_critic=3e-4,
-                 gamma=0.99, std=0.1, delayed_policy_updates=2,
-                 target_policy_smoothing=0.2, target_update_coef=5e-3):
+                 start_steps=10**4, batch_size=128, lr_actor=1e-3,
+                 lr_critic=1e-3, gamma=0.99, std=0.1, policy_update_interval=2,
+                 std_target=0.2, clip_noise=0.5, target_update_coef=5e-3):
         super().__init__(
             state_shape, action_shape, device, replay_size, start_steps,
             batch_size, lr_actor, lr_critic, gamma, std, target_update_coef)
 
-        self.delayed_policy_updates = delayed_policy_updates
-        self.target_policy_smoothing = target_policy_smoothing
+        self.policy_update_interval = policy_update_interval
+        self.std_target = std_target
+        self.clip_noise = clip_noise
 
     def _build_critic(self, state_shape, action_shape, device):
         self.critic = TwinnedStateActionFunction(
@@ -40,7 +41,7 @@ class TD3(DDPG):
 
         self.update_critic(states, actions, rewards, dones, next_states)
 
-        if self.learning_steps % self.delayed_policy_updates == 0:
+        if self.learning_steps % self.policy_update_interval == 0:
             self.update_actor(states)
             self.update_target()
 
@@ -48,9 +49,12 @@ class TD3(DDPG):
         curr_qs1, curr_qs2 = self.critic(states, actions)
 
         with torch.no_grad():
-            next_actions = self.actor_target.sample(
-                next_states, self.target_policy_smoothing)
-            next_qs1, next_qs2 = self.critic_target(next_states, next_actions)
+            next_actions = self.actor_target(next_states)
+            noises = torch.randn_like(next_actions).mul_(
+                self.std_target).clamp_(-self.clip_noise, self.clip_noise)
+            next_qs1, next_qs2 = self.critic_target(
+                next_states, next_actions.add_(noises).clamp_(-1.0, 1.0)
+            )
 
         target_qs = rewards + (
             1.0 - dones) * self.gamma * torch.min(next_qs1, next_qs2)
@@ -63,9 +67,9 @@ class TD3(DDPG):
         self.optim_critic.step()
 
     def update_actor(self, states):
-        actions = self.actor(states)
-        curr_qs, _ = self.critic(states, actions)
-        loss_actor = -curr_qs.mean()
+        loss_actor = -self.critic.net1(
+            torch.cat([states, self.actor(states)], dim=-1)
+        ).mean()
 
         self.optim_actor.zero_grad()
         loss_actor.backward(retain_graph=False)

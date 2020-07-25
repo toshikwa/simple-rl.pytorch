@@ -85,14 +85,14 @@ class OffPolicy(Algorithm):
             action_shape=action_shape,
             device=device,
         )
-        self.start_steps = max(start_steps, batch_size)
+        self.start_steps = start_steps
         self.batch_size = batch_size
 
     def reset(self, state):
         pass
 
     def is_update(self, steps):
-        return steps >= self.start_steps
+        return steps >= max(self.start_steps, self.batch_size)
 
     def step(self, env, state, t, steps):
         t += 1

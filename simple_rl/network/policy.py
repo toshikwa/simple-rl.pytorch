@@ -29,8 +29,7 @@ class DeterministicPolicy(nn.Module):
 
     def sample(self, states, std):
         actions = self.forward(states)
-        actions.add_(torch.randn_like(actions) * std)
-        return actions.clamp_(-1.0, 1.0)
+        return actions.add_(torch.randn_like(actions) * std).clamp_(-1.0, 1.0)
 
     def evaluate_log_pi(self, states, actions):
         NotImplementedError
