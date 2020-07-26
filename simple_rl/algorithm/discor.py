@@ -65,9 +65,11 @@ class DisCor(SAC):
     def calculate_importance_weights(self, next_states, dones):
         next_errors1, next_errors2 = self.sample_errors(next_states)
 
+        # Terms inside the exponent of importance weights.
         x1 = -(1.0 - dones) * self.gamma * next_errors1 / (self.tau1 + 1e-8)
         x2 = -(1.0 - dones) * self.gamma * next_errors2 / (self.tau2 + 1e-8)
 
+        # Calculate self-normalized importance weights.
         return F.softmax(x1, dim=0), F.softmax(x2, dim=0)
 
     def update_critic(self, states, actions, rewards, dones, next_states):

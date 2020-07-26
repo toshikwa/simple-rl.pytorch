@@ -19,12 +19,10 @@ class DeterministicPolicy(nn.Module):
         )
 
     def forward(self, states):
-        means = self.net(states)
-        return torch.tanh(means)
+        return torch.tanh(self.net(states))
 
-    def sample(self, states, std):
-        actions = self.forward(states)
-        return actions.add_(torch.randn_like(actions) * std).clamp_(-1.0, 1.0)
+    def sample(self, states):
+        NotImplementedError
 
     def evaluate_log_pi(self, states, actions):
         NotImplementedError
@@ -50,13 +48,11 @@ class StateIndependentVarianceGaussianPolicy(nn.Module):
         return torch.tanh(means)
 
     def sample(self, states):
-        means = self.net(states)
-        actions, log_pis = reparameterize(means, self.log_stds)
+        actions, log_pis = reparameterize(self.net(states), self.log_stds)
         return actions, log_pis
 
     def evaluate_log_pi(self, states, actions):
-        means = self.net(states)
-        return evaluate_lop_pi(means, self.log_stds, actions)
+        return evaluate_lop_pi(self.net(states), self.log_stds, actions)
 
 
 class StateDependentVarianceGaussianPolicy(nn.Module):

@@ -54,12 +54,14 @@ class TD3(DDPG):
 
         with torch.no_grad():
             next_actions = self.actor_target(next_states)
+            # Add noises to smoothen the target policy.
             noises = torch.randn_like(next_actions).mul_(
                 self.std_target).clamp_(-self.clip_noise, self.clip_noise)
             next_qs1, next_qs2 = self.critic_target(
                 next_states, next_actions.add_(noises).clamp_(-1.0, 1.0)
             )
 
+        # Use min(Q1, Q2) to reduce the overestimation of the target.
         target_qs = rewards + (
             1.0 - dones) * self.gamma * torch.min(next_qs1, next_qs2)
 

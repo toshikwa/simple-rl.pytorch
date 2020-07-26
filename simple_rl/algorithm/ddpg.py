@@ -59,7 +59,9 @@ class DDPG(OffPolicy):
         state = torch.tensor(
             state, dtype=torch.float, device=self.device).unsqueeze_(0)
         with torch.no_grad():
-            action = self.actor.sample(state, self.std)
+            action = self.actor(state)
+            # Add noises to explore when collecting samples.
+            action.add_(torch.randn_like(action) * self.std).clamp_(-1.0, 1.0)
         return action.cpu().numpy()[0]
 
     def update(self):
