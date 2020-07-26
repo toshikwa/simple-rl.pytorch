@@ -3,27 +3,39 @@ import torch
 from torch import nn
 
 from .ddpg import DDPG
-from simple_rl.network import TwinnedStateActionFunction
-from simple_rl.utils import disable_gradient
+from simple_rl.network import DeterministicPolicy, TwinnedStateActionFunction
 
 
 class TD3(DDPG):
 
     def __init__(self, state_shape, action_shape, device, batch_size=128,
-                 gamma=0.99, nstep=1, lr_actor=1e-3, lr_critic=1e-3,
-                 replay_size=10**6, start_steps=10**4, std=0.1,
+                 gamma=0.99, nstep=1, replay_size=10**6, start_steps=10**4,
+                 lr_actor=1e-3, lr_critic=1e-3, std=0.1,
                  update_interval_policy=2, std_target=0.2, clip_noise=0.5,
                  target_update_coef=5e-3):
         super().__init__(
             state_shape, action_shape, device, batch_size, gamma, nstep,
-            lr_actor, lr_critic, replay_size, start_steps, std,
+            replay_size, start_steps, lr_actor, lr_critic, std,
             target_update_coef)
 
         self.update_interval_policy = update_interval_policy
         self.std_target = std_target
         self.clip_noise = clip_noise
 
-    def _build_critic(self):
+    def build_network(self):
+        self.actor = DeterministicPolicy(
+            state_shape=self.state_shape,
+            action_shape=self.action_shape,
+            hidden_units=[400, 300],
+            HiddenActivation=partial(nn.ReLU, inplace=True)
+        ).to(self.device)
+        self.actor_target = DeterministicPolicy(
+            state_shape=self.state_shape,
+            action_shape=self.action_shape,
+            hidden_units=[400, 300],
+            HiddenActivation=partial(nn.ReLU, inplace=True)
+        ).to(self.device)
+
         self.critic = TwinnedStateActionFunction(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
@@ -36,9 +48,6 @@ class TD3(DDPG):
             hidden_units=[400, 300],
             HiddenActivation=partial(nn.ReLU, inplace=True)
         ).to(self.device).eval()
-
-        self.critic_target.load_state_dict(self.critic.state_dict())
-        disable_gradient(self.critic_target)
 
     def update(self):
         self.learning_steps += 1

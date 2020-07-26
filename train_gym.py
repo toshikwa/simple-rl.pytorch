@@ -4,27 +4,24 @@ from datetime import datetime
 import torch
 import gym
 
-from simple_rl.algorithm import ALGORITHMS
+from simple_rl.algorithm import STATE_ALGORITHMS
 from simple_rl.trainer import Trainer
 
 gym.logger.set_level(40)
 
 
 def run(args):
-    # Create environments.
     env = gym.make(args.env_id)
     env_test = gym.make(args.env_id)
 
-    # Device to use.
     device = torch.device(
         "cuda" if args.cuda and torch.cuda.is_available() else "cpu")
 
-    # Specify the directory to log.
     time = datetime.now().strftime("%Y%m%d-%H%M")
     log_dir = os.path.join(
         'logs', args.env_id, f'{args.algo}-seed{args.seed}-{time}')
 
-    algo = ALGORITHMS[args.algo](
+    algo = STATE_ALGORITHMS[args.algo](
         state_shape=env.observation_space.shape,
         action_shape=env.action_space.shape,
         device=device
@@ -36,6 +33,7 @@ def run(args):
         algo=algo,
         device=device,
         log_dir=log_dir,
+        action_repeat=1,
         num_steps=args.num_steps,
         seed=args.seed
     )

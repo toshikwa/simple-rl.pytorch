@@ -3,6 +3,7 @@ import torch
 from torch import nn
 
 from .utils import build_mlp, reparameterize, evaluate_lop_pi
+from .ae import LinearLayer
 
 
 class DeterministicPolicy(nn.Module):
@@ -80,3 +81,36 @@ class StateDependentVarianceGaussianPolicy(nn.Module):
     def evaluate_log_pi(self, states, actions):
         means, log_stds = self.net(states).chunk(2, dim=-1)
         return evaluate_lop_pi(means, log_stds.clamp_(-20, 2), actions)
+
+
+class StateDependentVarianceGaussianPolicyWithEncoder(nn.Module):
+
+    def __init__(self, encoder, action_shape, hidden_units=[1024, 1024],
+                 HiddenActivation=partial(nn.ReLU, inplace=True)):
+        super().__init__()
+
+        self.encoder = nn.ModuleDict({
+            'body': encoder.body,
+            'linear': LinearLayer(
+                input_dim=encoder.last_conv_dim,
+                output_dim=encoder.feature_dim
+            )
+        })
+        self.mlp_actor = StateDependentVarianceGaussianPolicy(
+            state_shape=(encoder.feature_dim, ),
+            action_shape=action_shape,
+            hidden_units=hidden_units,
+            HiddenActivation=HiddenActivation
+        )
+
+    def _forward_encoder(self, states, skip_body):
+        if not skip_body:
+            with torch.no_grad():
+                states = self.encoder['body'](states)
+        return self.encoder['linear'](states)
+
+    def forward(self, states, skip_body=False):
+        return self.mlp_actor(self._forward_encoder(states, skip_body))
+
+    def sample(self, states, skip_body=False):
+        return self.mlp_actor.sample(self._forward_encoder(states, skip_body))

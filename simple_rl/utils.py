@@ -1,3 +1,6 @@
+import torch
+
+
 def soft_update(target, source, tau):
     for t, s in zip(target.parameters(), source.parameters()):
         t.data.mul_(1.0 - tau)
@@ -7,3 +10,15 @@ def soft_update(target, source, tau):
 def disable_gradient(network):
     for param in network.parameters():
         param.requires_grad = False
+
+
+def preprocess_states(states, bits=5):
+    assert states.dtype == torch.uint8
+    states = states.float()
+    bins = 2 ** bits
+    if bits < 8:
+        states = torch.floor(states / 2 ** (8 - bits))
+    states = states / bins
+    states = states + torch.rand_like(states) / bins
+    states = states - 0.5
+    return states

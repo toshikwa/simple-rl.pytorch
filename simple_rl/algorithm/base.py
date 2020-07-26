@@ -8,8 +8,7 @@ from simple_rl.buffer import (
 
 class Algorithm(ABC):
 
-    def __init__(self, state_shape, action_shape, device, batch_size, gamma,
-                 lr_actor, lr_critic):
+    def __init__(self, state_shape, action_shape, device, batch_size, gamma):
         self.learning_steps = 0
         self.state_shape = state_shape
         self.action_shape = action_shape
@@ -18,20 +17,8 @@ class Algorithm(ABC):
         self.batch_size = batch_size
         self.gamma = gamma
 
-        self._build_actor()
-        self._build_critic()
-
-        self.optim_actor = torch.optim.Adam(
-            self.actor.parameters(), lr=lr_actor)
-        self.optim_critic = torch.optim.Adam(
-            self.critic.parameters(), lr=lr_critic)
-
     @abstractmethod
-    def _build_actor(self):
-        pass
-
-    @abstractmethod
-    def _build_critic(self):
+    def build_network(self):
         pass
 
     @abstractmethod
@@ -65,10 +52,9 @@ class Algorithm(ABC):
 class OnPolicy(Algorithm):
 
     def __init__(self, state_shape, action_shape, device, batch_size, gamma,
-                 lr_actor, lr_critic, rollout_length=10**6):
+                 rollout_length=10**6):
         super().__init__(
-            state_shape, action_shape, device, batch_size, gamma,
-            lr_actor, lr_critic)
+            state_shape, action_shape, device, batch_size, gamma)
 
         self.buffer = RolloutBuffer(
             buffer_size=rollout_length,
@@ -108,11 +94,9 @@ class OnPolicy(Algorithm):
 class OffPolicy(Algorithm):
 
     def __init__(self, state_shape, action_shape, device, batch_size, gamma,
-                 nstep, lr_actor, lr_critic, replay_size=10**6,
-                 start_steps=10**4):
+                 nstep, replay_size=10**6, start_steps=10**4):
         super().__init__(
-            state_shape, action_shape, device, batch_size, gamma,
-            lr_actor, lr_critic)
+            state_shape, action_shape, device, batch_size, gamma)
 
         Buf = PixelReplayBuffer if len(state_shape) == 3 else StateReplayBuffer
         self.buffer = Buf(

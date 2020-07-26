@@ -8,8 +8,9 @@ from torch.utils.tensorboard import SummaryWriter
 
 class Trainer:
 
-    def __init__(self, env, env_test, algo, device, log_dir, num_steps=10**6,
-                 eval_interval=10**4, num_eval_episodes=10, seed=0):
+    def __init__(self, env, env_test, algo, device, log_dir, action_repeat=1,
+                 num_steps=10**6, eval_interval=10**4, num_eval_episodes=10,
+                 seed=0):
 
         self.env = env
         self.env_test = env_test
@@ -29,6 +30,7 @@ class Trainer:
             os.makedirs(self.model_dir)
 
         self.device = device
+        self.action_repeat = action_repeat
         self.num_steps = num_steps
         self.eval_interval = eval_interval
         self.num_eval_episodes = num_eval_episodes
@@ -40,7 +42,7 @@ class Trainer:
         state = self.env.reset()
         self.algo.reset(state)
 
-        for steps in range(1, self.num_steps + 1):
+        for steps in range(1, self.num_steps // self.action_repeat + 1):
             state, t = self.algo.step(self.env, state, t, steps)
 
             if self.algo.is_update(steps):
@@ -65,8 +67,9 @@ class Trainer:
 
         mean_return = np.mean(returns)
 
-        self.writer.add_scalar('return/test', mean_return, steps)
-        print(f'Num steps: {steps:<6}   '
+        self.writer.add_scalar(
+            'return/test', mean_return, steps * self.action_repeat)
+        print(f'Num steps: {steps * self.action_repeat:<6}   '
               f'Return: {mean_return:<5.1f}   '
               f'Time: {self.time}')
 

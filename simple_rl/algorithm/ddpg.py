@@ -12,17 +12,29 @@ from simple_rl.utils import soft_update, disable_gradient
 class DDPG(OffPolicy):
 
     def __init__(self, state_shape, action_shape, device, batch_size=128,
-                 gamma=0.99, nstep=1, lr_actor=1e-3, lr_critic=1e-3,
-                 replay_size=10**6, start_steps=10**4, std=0.1,
+                 gamma=0.99, nstep=1, replay_size=10**6, start_steps=10**4,
+                 lr_actor=1e-3, lr_critic=1e-3, std=0.1,
                  target_update_coef=5e-3):
         super().__init__(
             state_shape, action_shape, device, batch_size, gamma, nstep,
-            lr_actor, lr_critic, replay_size, start_steps)
+            replay_size, start_steps)
 
         self.std = std
         self.target_update_coef = target_update_coef
 
-    def _build_actor(self):
+        self.build_network()
+
+        self.actor_target.load_state_dict(self.actor.state_dict())
+        disable_gradient(self.actor_target)
+        self.critic_target.load_state_dict(self.critic.state_dict())
+        disable_gradient(self.critic_target)
+
+        self.optim_actor = torch.optim.Adam(
+            self.actor.parameters(), lr=lr_actor)
+        self.optim_critic = torch.optim.Adam(
+            self.critic.parameters(), lr=lr_critic)
+
+    def build_network(self):
         self.actor = DeterministicPolicy(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
@@ -35,11 +47,6 @@ class DDPG(OffPolicy):
             hidden_units=[400, 300],
             HiddenActivation=partial(nn.ReLU, inplace=True)
         ).to(self.device)
-
-        self.actor_target.load_state_dict(self.actor.state_dict())
-        disable_gradient(self.actor_target)
-
-    def _build_critic(self):
         self.critic = StateActionFunction(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
@@ -52,9 +59,6 @@ class DDPG(OffPolicy):
             hidden_units=[400, 300],
             HiddenActivation=partial(nn.ReLU, inplace=True)
         ).to(self.device).eval()
-
-        self.critic_target.load_state_dict(self.critic.state_dict())
-        disable_gradient(self.critic_target)
 
     def explore(self, state):
         state = torch.tensor(

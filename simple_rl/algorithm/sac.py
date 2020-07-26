@@ -1,4 +1,5 @@
 from functools import partial
+import numpy as np
 import torch
 from torch import nn
 
@@ -12,29 +13,37 @@ from simple_rl.utils import soft_update, disable_gradient
 class SAC(OffPolicy):
 
     def __init__(self, state_shape, action_shape, device, batch_size=256,
-                 gamma=0.99, nstep=1, lr_actor=3e-4, lr_critic=3e-4,
-                 replay_size=10**6, start_steps=10**4, lr_alpha=3e-4,
+                 gamma=0.99, nstep=1, replay_size=10**6, start_steps=10**4,
+                 lr_actor=3e-4, lr_critic=3e-4, lr_alpha=3e-4, alpha_init=1.0,
                  target_update_coef=5e-3):
         super().__init__(
             state_shape, action_shape, device, batch_size, gamma, nstep,
-            lr_actor, lr_critic, replay_size, start_steps)
+            replay_size, start_steps)
 
-        self.alpha = 1.0
-        self.log_alpha = torch.zeros(1, device=device, requires_grad=True)
+        self.build_network()
+        self.critic_target.load_state_dict(self.critic.state_dict())
+        disable_gradient(self.critic_target)
+
+        self.optim_actor = torch.optim.Adam(
+            self.actor.parameters(), lr=lr_actor)
+        self.optim_critic = torch.optim.Adam(
+            self.critic.parameters(), lr=lr_critic)
+
+        self.alpha = alpha_init
+        self.log_alpha = torch.tensor(
+            np.log(alpha_init), device=device, requires_grad=True)
         self.optim_alpha = torch.optim.Adam([self.log_alpha], lr=lr_alpha)
         self.target_entropy = -float(action_shape[0])
 
         self.target_update_coef = target_update_coef
 
-    def _build_actor(self):
+    def build_network(self):
         self.actor = StateDependentVarianceGaussianPolicy(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[256, 256],
             HiddenActivation=partial(nn.ReLU, inplace=True)
         ).to(self.device)
-
-    def _build_critic(self):
         self.critic = TwinnedStateActionFunction(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
@@ -47,9 +56,6 @@ class SAC(OffPolicy):
             hidden_units=[256, 256],
             HiddenActivation=partial(nn.ReLU, inplace=True)
         ).to(self.device).eval()
-
-        self.critic_target.load_state_dict(self.critic.state_dict())
-        disable_gradient(self.critic_target)
 
     def explore(self, state):
         state = torch.tensor(
