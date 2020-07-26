@@ -1,4 +1,3 @@
-from functools import partial
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -24,13 +23,13 @@ class DisCor(SAC):
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[256, 256, 256],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
+            hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
         self.error_target = TwinnedStateActionFunction(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[256, 256, 256],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
+            hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device).eval()
 
         self.error_target.load_state_dict(self.error.state_dict())
@@ -47,7 +46,7 @@ class DisCor(SAC):
         states, actions, rewards, dones, next_states = \
             self.buffer.sample(self.batch_size)
 
-        curr_qs1, curr_qs2, target_qs = self.update_critic(
+        curr_qs1, curr_qs2, target_qs = self.update_critic_with_is(
             states, actions, rewards, dones, next_states)
         self.update_error(
             states, actions, dones, next_states, curr_qs1, curr_qs2, target_qs)
@@ -64,7 +63,7 @@ class DisCor(SAC):
             errors1, errors2 = self.error_target(states, actions)
         return errors1, errors2
 
-    def calculate_importance_weights(self, next_states, dones):
+    def calculate_imp_ws(self, next_states, dones):
         next_errors1, next_errors2 = self.sample_errors(next_states)
 
         # Terms inside the exponent of importance weights.
@@ -74,7 +73,8 @@ class DisCor(SAC):
         # Calculate self-normalized importance weights.
         return F.softmax(x1, dim=0), F.softmax(x2, dim=0)
 
-    def update_critic(self, states, actions, rewards, dones, next_states):
+    def update_critic_with_is(self, states, actions, rewards, dones,
+                              next_states):
         curr_qs1, curr_qs2 = self.critic(states, actions)
 
         with torch.no_grad():
@@ -83,8 +83,7 @@ class DisCor(SAC):
             next_qs = torch.min(next_qs1, next_qs2) - self.alpha * log_pis
         target_qs = rewards + (1.0 - dones) * self.discount * next_qs
 
-        imp_ws1, imp_ws2 = \
-            self.calculate_importance_weights(next_states, dones)
+        imp_ws1, imp_ws2 = self.calculate_imp_ws(next_states, dones)
 
         loss_critic1 = (curr_qs1 - target_qs).pow_(2).mul_(imp_ws1).sum()
         loss_critic2 = (curr_qs2 - target_qs).pow_(2).mul_(imp_ws1).sum()

@@ -4,6 +4,7 @@ from .td3 import TD3
 from .sac import SAC
 from .discor import DisCor
 from .sac_ae import SACAE
+from .discor_ae import DisCorAE
 
 STATE_ALGORITHMS = {
     'ppo': PPO,
@@ -14,5 +15,6 @@ STATE_ALGORITHMS = {
 }
 
 PIXEL_ALGORITHMS = {
-    'sac_ae': SACAE
+    'sac_ae': SACAE,
+    'discor_ae': DisCorAE
 }

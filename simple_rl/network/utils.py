@@ -17,12 +17,12 @@ def initialize_weights_xavier(m, gain=1.0):
 
 
 def build_mlp(input_dim, output_dim, hidden_units=[64, 64],
-              HiddenActivation=nn.Tanh):
+              hidden_activation=nn.Tanh()):
     layers = []
     units = input_dim
     for next_units in hidden_units:
         layers.append(nn.Linear(units, next_units))
-        layers.append(HiddenActivation())
+        layers.append(hidden_activation)
         units = next_units
     layers.append(nn.Linear(units, output_dim))
     return nn.Sequential(*layers)

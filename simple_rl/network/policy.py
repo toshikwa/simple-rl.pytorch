@@ -1,4 +1,3 @@
-from functools import partial
 import torch
 from torch import nn
 
@@ -9,14 +8,14 @@ from .ae import LinearLayer
 class DeterministicPolicy(nn.Module):
 
     def __init__(self, state_shape, action_shape, hidden_units=[400, 300],
-                 HiddenActivation=partial(nn.ReLU, inplace=True)):
+                 hidden_activation=nn.ReLU(inplace=True)):
         super().__init__()
 
         self.net = build_mlp(
             input_dim=state_shape[0],
             output_dim=action_shape[0],
             hidden_units=hidden_units,
-            HiddenActivation=HiddenActivation
+            hidden_activation=hidden_activation
         )
 
     def forward(self, states):
@@ -32,14 +31,14 @@ class DeterministicPolicy(nn.Module):
 class StateIndependentVarianceGaussianPolicy(nn.Module):
 
     def __init__(self, state_shape, action_shape, hidden_units=[64, 64],
-                 HiddenActivation=nn.Tanh):
+                 hidden_activation=nn.Tanh()):
         super().__init__()
 
         self.net = build_mlp(
             input_dim=state_shape[0],
             output_dim=action_shape[0],
             hidden_units=hidden_units,
-            HiddenActivation=HiddenActivation
+            hidden_activation=hidden_activation
         )
 
         self.log_stds = nn.Parameter(torch.zeros(1, action_shape[0]))
@@ -59,14 +58,14 @@ class StateIndependentVarianceGaussianPolicy(nn.Module):
 class StateDependentVarianceGaussianPolicy(nn.Module):
 
     def __init__(self, state_shape, action_shape, hidden_units=[256, 256],
-                 HiddenActivation=partial(nn.ReLU, inplace=True)):
+                 hidden_activation=nn.ReLU(inplace=True)):
         super().__init__()
 
         self.net = build_mlp(
             input_dim=state_shape[0],
             output_dim=2 * action_shape[0],
             hidden_units=hidden_units,
-            HiddenActivation=HiddenActivation
+            hidden_activation=hidden_activation
         )
 
     def forward(self, states):
@@ -86,7 +85,7 @@ class StateDependentVarianceGaussianPolicy(nn.Module):
 class StateDependentVarianceGaussianPolicyWithEncoder(nn.Module):
 
     def __init__(self, encoder, action_shape, hidden_units=[1024, 1024],
-                 HiddenActivation=partial(nn.ReLU, inplace=True)):
+                 hidden_activation=nn.ReLU(inplace=True)):
         super().__init__()
 
         self.encoder = nn.ModuleDict({
@@ -100,7 +99,7 @@ class StateDependentVarianceGaussianPolicyWithEncoder(nn.Module):
             state_shape=(encoder.feature_dim, ),
             action_shape=action_shape,
             hidden_units=hidden_units,
-            HiddenActivation=HiddenActivation
+            hidden_activation=hidden_activation
         )
 
     def _forward_encoder(self, states, skip_body):

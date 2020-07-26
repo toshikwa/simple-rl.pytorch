@@ -41,12 +41,12 @@ class PPO(OnPolicy):
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[64, 64],
-            HiddenActivation=nn.Tanh
+            hidden_activation=nn.Tanh()
         ).to(self.device)
         self.critic = StateFunction(
             state_shape=self.state_shape,
             hidden_units=[64, 64],
-            HiddenActivation=nn.Tanh
+            hidden_activation=nn.Tanh()
         ).to(self.device)
 
     def explore(self, state):

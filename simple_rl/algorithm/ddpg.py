@@ -1,11 +1,8 @@
-from functools import partial
 import torch
 from torch import nn
 
 from .base import OffPolicy
-from simple_rl.network import (
-    DeterministicPolicy, StateActionFunction
-)
+from simple_rl.network import DeterministicPolicy, StateActionFunction
 from simple_rl.utils import soft_update, disable_gradient
 
 
@@ -39,25 +36,25 @@ class DDPG(OffPolicy):
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[400, 300],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
+            hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
         self.actor_target = DeterministicPolicy(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[400, 300],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
+            hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
         self.critic = StateActionFunction(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[400, 300],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
+            hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
         self.critic_target = StateActionFunction(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[400, 300],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
+            hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device).eval()
 
     def explore(self, state):

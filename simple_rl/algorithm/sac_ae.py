@@ -1,4 +1,3 @@
-from functools import partial
 import torch
 from torch import nn
 
@@ -61,19 +60,19 @@ class SACAE(SAC):
             encoder=self.encoder,
             action_shape=self.action_shape,
             hidden_units=[1024, 1024],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
+            hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
         self.critic = TwinnedStateActionFunctionWithEncoder(
             encoder=self.encoder,
             action_shape=self.action_shape,
             hidden_units=[1024, 1024],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
+            hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
         self.critic_target = TwinnedStateActionFunctionWithEncoder(
             encoder=self.encoder_target,
             action_shape=self.action_shape,
             hidden_units=[1024, 1024],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
+            hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device).eval()
 
     def update(self):

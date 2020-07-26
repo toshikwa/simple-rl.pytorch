@@ -1,4 +1,3 @@
-from functools import partial
 import numpy as np
 import torch
 from torch import nn
@@ -42,19 +41,19 @@ class SAC(OffPolicy):
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[256, 256],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
+            hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
         self.critic = TwinnedStateActionFunction(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[256, 256],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
+            hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
         self.critic_target = TwinnedStateActionFunction(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[256, 256],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
+            hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device).eval()
 
     def explore(self, state):

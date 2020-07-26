@@ -1,4 +1,3 @@
-from functools import partial
 import torch
 from torch import nn
 
@@ -27,26 +26,26 @@ class TD3(DDPG):
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[400, 300],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
+            hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
         self.actor_target = DeterministicPolicy(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[400, 300],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
+            hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
 
         self.critic = TwinnedStateActionFunction(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[400, 300],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
+            hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
         self.critic_target = TwinnedStateActionFunction(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[400, 300],
-            HiddenActivation=partial(nn.ReLU, inplace=True)
+            hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device).eval()
 
     def update(self):

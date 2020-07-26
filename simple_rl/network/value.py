@@ -1,4 +1,3 @@
-from functools import partial
 import torch
 from torch import nn
 
@@ -8,14 +7,14 @@ from .utils import build_mlp
 class StateFunction(nn.Module):
 
     def __init__(self, state_shape, hidden_units=[64, 64],
-                 HiddenActivation=nn.Tanh):
+                 hidden_activation=nn.Tanh()):
         super().__init__()
 
         self.net = build_mlp(
             input_dim=state_shape[0],
             output_dim=1,
             hidden_units=hidden_units,
-            HiddenActivation=HiddenActivation
+            hidden_activation=hidden_activation
         )
 
     def forward(self, states):
@@ -25,14 +24,14 @@ class StateFunction(nn.Module):
 class StateActionFunction(nn.Module):
 
     def __init__(self, state_shape, action_shape, hidden_units=[256, 256],
-                 HiddenActivation=partial(nn.ReLU, inplace=True)):
+                 hidden_activation=nn.ReLU(inplace=True)):
         super().__init__()
 
         self.net = build_mlp(
             input_dim=state_shape[0] + action_shape[0],
             output_dim=1,
             hidden_units=hidden_units,
-            HiddenActivation=HiddenActivation
+            hidden_activation=hidden_activation
         )
 
     def forward(self, states, actions):
@@ -43,21 +42,21 @@ class StateActionFunction(nn.Module):
 class TwinnedStateActionFunction(nn.Module):
 
     def __init__(self, state_shape, action_shape, hidden_units=[256, 256],
-                 HiddenActivation=partial(nn.ReLU, inplace=True)):
+                 hidden_activation=nn.ReLU(inplace=True)):
         super().__init__()
 
         self.net1 = build_mlp(
             input_dim=state_shape[0] + action_shape[0],
             output_dim=1,
             hidden_units=hidden_units,
-            HiddenActivation=HiddenActivation
+            hidden_activation=hidden_activation
         )
 
         self.net2 = build_mlp(
             input_dim=state_shape[0] + action_shape[0],
             output_dim=1,
             hidden_units=hidden_units,
-            HiddenActivation=HiddenActivation
+            hidden_activation=hidden_activation
         )
 
     def forward(self, states, actions):
@@ -68,7 +67,7 @@ class TwinnedStateActionFunction(nn.Module):
 class TwinnedStateActionFunctionWithEncoder(nn.Module):
 
     def __init__(self, encoder, action_shape, hidden_units=[1024, 1024],
-                 HiddenActivation=partial(nn.ReLU, inplace=True)):
+                 detach_bady=False, hidden_activation=nn.ReLU(inplace=True)):
         super().__init__()
 
         self.encoder = nn.ModuleDict({
@@ -79,12 +78,16 @@ class TwinnedStateActionFunctionWithEncoder(nn.Module):
             state_shape=(encoder.feature_dim, ),
             action_shape=action_shape,
             hidden_units=hidden_units,
-            HiddenActivation=HiddenActivation
+            hidden_activation=hidden_activation
         )
+        self.detach_doby = detach_bady
 
     def _forward_encoder(self, states, skip_body):
         if not skip_body:
-            with torch.no_grad():
+            if self.detach_doby:
+                with torch.no_grad():
+                    states = self.encoder['body'](states)
+            else:
                 states = self.encoder['body'](states)
         return self.encoder['linear'](states)
 
