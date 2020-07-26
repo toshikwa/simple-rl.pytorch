@@ -12,20 +12,18 @@ from simple_rl.utils import soft_update, disable_gradient
 class SAC(OffPolicy):
 
     def __init__(self, state_shape, action_shape, device, batch_size=256,
-                 gamma=0.99, lr_actor=3e-4, lr_critic=3e-4, replay_size=10**6,
-                 start_steps=10**4, lr_alpha=3e-4, target_update_coef=5e-3):
+                 gamma=0.99, nstep=1, lr_actor=3e-4, lr_critic=3e-4,
+                 replay_size=10**6, start_steps=10**4, lr_alpha=3e-4,
+                 target_update_coef=5e-3):
         super().__init__(
-            state_shape, action_shape, device, batch_size, gamma, lr_actor,
-            lr_critic, replay_size, start_steps)
+            state_shape, action_shape, device, batch_size, gamma, nstep,
+            lr_actor, lr_critic, replay_size, start_steps)
 
         self.alpha = 1.0
         self.log_alpha = torch.zeros(1, device=device, requires_grad=True)
         self.optim_alpha = torch.optim.Adam([self.log_alpha], lr=lr_alpha)
         self.target_entropy = -float(action_shape[0])
 
-        self.learning_steps = 0
-        self.device = device
-        self.gamma = gamma
         self.target_update_coef = target_update_coef
 
     def _build_actor(self):
@@ -55,7 +53,7 @@ class SAC(OffPolicy):
 
     def explore(self, state):
         state = torch.tensor(
-            state, dtype=torch.float, device=self.device).unsqueeze_(0)
+            state, dtype=self.dtype, device=self.device).unsqueeze_(0)
         with torch.no_grad():
             action, _ = self.actor.sample(state)
         return action.cpu().numpy()[0]
@@ -76,7 +74,7 @@ class SAC(OffPolicy):
             next_actions, log_pis = self.actor.sample(next_states)
             next_qs1, next_qs2 = self.critic_target(next_states, next_actions)
             next_qs = torch.min(next_qs1, next_qs2) - self.alpha * log_pis
-        target_qs = rewards + (1.0 - dones) * self.gamma * next_qs
+        target_qs = rewards + (1.0 - dones) * self.discount * next_qs
 
         loss_critic1 = (curr_qs1 - target_qs).pow_(2).mean()
         loss_critic2 = (curr_qs2 - target_qs).pow_(2).mean()

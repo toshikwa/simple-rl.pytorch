@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 import torch
 
-from simple_rl.buffer import RolloutBuffer, ReplayBuffer
+from simple_rl.buffer import (
+    RolloutBuffer, StateReplayBuffer, PixelReplayBuffer
+)
 
 
 class Algorithm(ABC):
@@ -11,6 +13,7 @@ class Algorithm(ABC):
         self.learning_steps = 0
         self.state_shape = state_shape
         self.action_shape = action_shape
+        self.dtype = torch.uint8 if len(state_shape) == 3 else torch.float
         self.device = device
         self.batch_size = batch_size
         self.gamma = gamma
@@ -25,11 +28,11 @@ class Algorithm(ABC):
 
     @abstractmethod
     def _build_actor(self):
-        self.actor = None
+        pass
 
     @abstractmethod
     def _build_critic(self):
-        self.critic = None
+        pass
 
     @abstractmethod
     def is_update(self, steps):
@@ -45,7 +48,7 @@ class Algorithm(ABC):
 
     def exploit(self, state):
         state = torch.tensor(
-            state, dtype=torch.float, device=self.device).unsqueeze_(0)
+            state, dtype=self.dtype, device=self.device).unsqueeze_(0)
         with torch.no_grad():
             action = self.actor(state)
         return action.cpu().numpy()[0]
@@ -105,18 +108,23 @@ class OnPolicy(Algorithm):
 class OffPolicy(Algorithm):
 
     def __init__(self, state_shape, action_shape, device, batch_size, gamma,
-                 lr_actor, lr_critic, replay_size=10**6, start_steps=10**4):
+                 nstep, lr_actor, lr_critic, replay_size=10**6,
+                 start_steps=10**4):
         super().__init__(
             state_shape, action_shape, device, batch_size, gamma,
             lr_actor, lr_critic)
 
-        self.buffer = ReplayBuffer(
+        Buf = PixelReplayBuffer if len(state_shape) == 3 else StateReplayBuffer
+        self.buffer = Buf(
             buffer_size=replay_size,
             state_shape=state_shape,
             action_shape=action_shape,
             device=device,
+            gamma=gamma,
+            nstep=nstep
         )
         self.start_steps = start_steps
+        self.discount = gamma ** nstep
 
     def reset(self, state):
         pass
@@ -139,7 +147,9 @@ class OffPolicy(Algorithm):
             done_masked = done
 
         self.buffer.append(
-            state, action, reward, done_masked, next_state)
+            state, action, reward, done_masked, next_state,
+            episode_done=done
+        )
 
         if done:
             t = 0

@@ -46,7 +46,7 @@ class PPO(OnPolicy):
 
     def explore(self, state):
         state = torch.tensor(
-            state, dtype=torch.float, device=self.device).unsqueeze_(0)
+            state, dtype=self.dtype, device=self.device).unsqueeze_(0)
         with torch.no_grad():
             action, log_pi = self.actor.sample(state)
         return action.cpu().numpy()[0], log_pi.item()

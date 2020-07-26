@@ -10,12 +10,14 @@ from simple_rl.utils import disable_gradient
 class TD3(DDPG):
 
     def __init__(self, state_shape, action_shape, device, batch_size=128,
-                 gamma=0.99, lr_actor=1e-3, lr_critic=1e-3, replay_size=10**6,
-                 start_steps=10**4, std=0.1, update_interval_policy=2,
-                 std_target=0.2, clip_noise=0.5, target_update_coef=5e-3):
+                 gamma=0.99, nstep=1, lr_actor=1e-3, lr_critic=1e-3,
+                 replay_size=10**6, start_steps=10**4, std=0.1,
+                 update_interval_policy=2, std_target=0.2, clip_noise=0.5,
+                 target_update_coef=5e-3):
         super().__init__(
-            state_shape, action_shape, device, batch_size, gamma, lr_actor,
-            lr_critic, replay_size, start_steps, std, target_update_coef)
+            state_shape, action_shape, device, batch_size, gamma, nstep,
+            lr_actor, lr_critic, replay_size, start_steps, std,
+            target_update_coef)
 
         self.update_interval_policy = update_interval_policy
         self.std_target = std_target
@@ -63,7 +65,7 @@ class TD3(DDPG):
 
         # Use min(Q1, Q2) to reduce the overestimation of the target.
         target_qs = rewards + (
-            1.0 - dones) * self.gamma * torch.min(next_qs1, next_qs2)
+            1.0 - dones) * self.discount * torch.min(next_qs1, next_qs2)
 
         loss_critic1 = (curr_qs1 - target_qs).pow_(2).mean()
         loss_critic2 = (curr_qs2 - target_qs).pow_(2).mean()

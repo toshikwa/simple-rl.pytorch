@@ -11,12 +11,14 @@ from simple_rl.utils import soft_update, disable_gradient
 class DisCor(SAC):
 
     def __init__(self, state_shape, action_shape, device, batch_size=256,
-                 gamma=0.99, lr_actor=3e-4, lr_critic=3e-4, replay_size=10**6,
-                 start_steps=10**4, lr_alpha=3e-4, target_update_coef=5e-3,
-                 lr_error=3e-4, tau_init=10.0):
+                 gamma=0.99, nstep=1, lr_actor=3e-4, lr_critic=3e-4,
+                 replay_size=10**6, start_steps=10**4, lr_alpha=3e-4,
+                 target_update_coef=5e-3, lr_error=3e-4, tau_init=10.0):
         super().__init__(
-            state_shape, action_shape, device, batch_size, gamma, lr_actor,
-            lr_critic, replay_size, start_steps, lr_alpha, target_update_coef)
+            state_shape, action_shape, device, batch_size, gamma, nstep,
+            lr_actor, lr_critic, replay_size, start_steps, lr_alpha,
+            target_update_coef)
+        assert nstep == 1, 'DisCor only supports nstep=1.'
 
         self.error = TwinnedStateActionFunction(
             state_shape=state_shape,
@@ -79,7 +81,7 @@ class DisCor(SAC):
             next_actions, log_pis = self.actor.sample(next_states)
             next_qs1, next_qs2 = self.critic_target(next_states, next_actions)
             next_qs = torch.min(next_qs1, next_qs2) - self.alpha * log_pis
-        target_qs = rewards + (1.0 - dones) * self.gamma * next_qs
+        target_qs = rewards + (1.0 - dones) * self.discount * next_qs
 
         imp_ws1, imp_ws2 = \
             self.calculate_importance_weights(next_states, dones)
