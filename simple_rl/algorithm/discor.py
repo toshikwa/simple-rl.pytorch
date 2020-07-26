@@ -13,7 +13,7 @@ class DisCor(SAC):
     def __init__(self, state_shape, action_shape, device, batch_size=256,
                  gamma=0.99, lr_actor=3e-4, lr_critic=3e-4, replay_size=10**6,
                  start_steps=10**4, lr_alpha=3e-4, target_update_coef=5e-3,
-                 lr_error=3e-4, update_interval_error=1, tau_init=10.0):
+                 lr_error=3e-4, tau_init=10.0):
         super().__init__(
             state_shape, action_shape, device, batch_size, gamma, lr_actor,
             lr_critic, replay_size, start_steps, lr_alpha, target_update_coef)
@@ -40,8 +40,6 @@ class DisCor(SAC):
         self.tau1 = torch.tensor(tau_init, device=device, requires_grad=False)
         self.tau2 = torch.tensor(tau_init, device=device, requires_grad=False)
 
-        self.update_interval_error = update_interval_error
-
     def update(self):
         self.learning_steps += 1
         states, actions, rewards, dones, next_states = \
@@ -49,12 +47,11 @@ class DisCor(SAC):
 
         curr_qs1, curr_qs2, target_qs = self.update_critic(
             states, actions, rewards, dones, next_states)
-
-        if self.learning_steps % self.update_interval_error == 0:
-            self.update_error(
-                states, actions, dones, next_states,
-                curr_qs1, curr_qs2, target_qs
-            )
+        self.update_error(
+            states, actions, dones, next_states, curr_qs1, curr_qs2, target_qs)
+        del curr_qs1
+        del curr_qs2
+        del target_qs
 
         self.update_actor(states)
         self.update_target()
@@ -85,8 +82,8 @@ class DisCor(SAC):
         imp_ws1, imp_ws2 = \
             self.calculate_importance_weights(next_states, dones)
 
-        loss_critic1 = (curr_qs1 - target_qs).pow_(2).mul_(imp_ws1).mean()
-        loss_critic2 = (curr_qs2 - target_qs).pow_(2).mul_(imp_ws1).mean()
+        loss_critic1 = (curr_qs1 - target_qs).pow_(2).mul_(imp_ws1).sum()
+        loss_critic2 = (curr_qs2 - target_qs).pow_(2).mul_(imp_ws1).sum()
 
         self.optim_critic.zero_grad()
         (loss_critic1 + loss_critic2).backward(retain_graph=False)
