@@ -1,7 +1,10 @@
+from functools import partial
 import torch
 from torch import nn
 
-from .utils import build_mlp, reparameterize, evaluate_lop_pi
+from .utils import (
+    build_mlp, reparameterize, evaluate_lop_pi, initialize_weight
+)
 from .ae import LinearLayer
 
 
@@ -23,7 +26,8 @@ class DeterministicPolicy(torch.jit.ScriptModule):
             output_dim=action_shape[0],
             hidden_units=hidden_units,
             hidden_activation=hidden_activation
-        )
+        ).apply(initialize_weight)
+        self.net[-1].apply(partial(initialize_weight, gain=0.01))
 
     @torch.jit.script_method
     def forward(self, states):
@@ -47,7 +51,9 @@ class StateIndependentGaussianPolicy(torch.jit.ScriptModule):
             output_dim=action_shape[0],
             hidden_units=hidden_units,
             hidden_activation=hidden_activation
-        )
+        ).apply(initialize_weight)
+        self.net[-1].apply(partial(initialize_weight, gain=0.01))
+
         self.log_stds = nn.Parameter(torch.zeros(1, action_shape[0]))
 
     @torch.jit.script_method
@@ -76,12 +82,16 @@ class StateDependentGaussianPolicy(torch.jit.ScriptModule):
             hidden_units=hidden_units[:-1],
             hidden_activation=hidden_activation,
             output_activation=nn.ReLU(inplace=True)
-        )
-        self.mean = nn.Linear(hidden_units[-1], action_shape[0])
+        ).apply(initialize_weight)
+
+        self.mean = nn.Linear(
+            hidden_units[-1], action_shape[0]
+        ).apply(partial(initialize_weight, gain=0.01))
+
         self.log_std = nn.Sequential(
             nn.Linear(hidden_units[-1], action_shape[0]),
             Clamp()
-        )
+        ).apply(initialize_weight)
 
     @torch.jit.script_method
     def forward(self, states):
@@ -109,7 +119,7 @@ class GaussianPolicyWithDetachedEncoder(nn.Module):
             'linear': LinearLayer(
                 input_dim=encoder.last_conv_dim,
                 output_dim=encoder.feature_dim
-            )
+            ).apply(initialize_weight)
         })
         self.mlp_actor = StateDependentGaussianPolicy(
             state_shape=(encoder.feature_dim, ),

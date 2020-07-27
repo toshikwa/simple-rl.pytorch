@@ -1,21 +1,7 @@
 import torch
 from torch import nn
 
-
-def initialize_ae(m):
-    # Initialize linear layers with the orthogonal initialization.
-    if isinstance(m, nn.Linear):
-        nn.init.orthogonal_(m.weight.data)
-        m.bias.data.fill_(0.0)
-
-    # Initialize conv layers with the delta-orthogonal initialization.
-    elif isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
-        assert m.weight.size(2) == m.weight.size(3)
-        m.weight.data.fill_(0.0)
-        m.bias.data.fill_(0.0)
-        mid = m.weight.size(2) // 2
-        nn.init.orthogonal_(
-            m.weight.data[:, :, mid, mid], nn.init.calculate_gain('relu'))
+from .utils import initialize_weight
 
 
 class Floatify(nn.Module):
@@ -50,7 +36,7 @@ class LinearLayer(nn.Module):
             nn.Linear(input_dim, output_dim),
             nn.LayerNorm(output_dim),
             nn.Tanh()
-        ).apply(initialize_ae)
+        )
 
     def forward(self, x):
         return self.net(x)
@@ -84,7 +70,7 @@ class Body(BaseAutoEncoder):
                 nn.ReLU(inplace=True)
             ) for _ in range(num_layers - 1)],
             Flatten()
-        ).apply(initialize_ae)
+        )
 
     @torch.jit.script_method
     def forward(self, states):
@@ -97,10 +83,14 @@ class Encoder(BaseAutoEncoder):
         super().__init__(state_shape, feature_dim, num_layers, num_filters)
 
         # Conv layers shared between actor and critic.
-        self.body = Body(state_shape, feature_dim, num_layers, num_filters)
+        self.body = Body(
+            state_shape, feature_dim, num_layers, num_filters
+        ).apply(initialize_weight)
+
         # Linear layer for critic.
         self.linear = LinearLayer(
-            input_dim=self.last_conv_dim, output_dim=feature_dim)
+            input_dim=self.last_conv_dim, output_dim=feature_dim
+        ).apply(initialize_weight)
 
         self.state_shape = state_shape
         self.feature_dim = feature_dim
@@ -127,7 +117,7 @@ class Decoder(BaseAutoEncoder):
             ) for _ in range(num_layers - 1)],
             nn.ConvTranspose2d(
                 num_filters, state_shape[0], 3, stride=2, output_padding=1)
-        ).apply(initialize_ae)
+        ).apply(initialize_weight)
 
     @torch.jit.script_method
     def forward(self, features):

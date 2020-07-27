@@ -4,16 +4,20 @@ from torch import nn
 import torch.nn.functional as F
 
 
-def initialize_weights_orthogonal(m, gain=1.41):
+def initialize_weight(m, gain=1.0):
+    # Initialize linear layers with the orthogonal initialization.
     if isinstance(m, nn.Linear):
         nn.init.orthogonal_(m.weight.data, gain=gain)
-        nn.init.constant_(m.bias.data, 0)
+        m.bias.data.fill_(0.0)
 
-
-def initialize_weights_xavier(m, gain=1.0):
-    if isinstance(m, nn.Linear):
-        nn.init.xavier_uniform_(m.weight.data, gain=gain)
-        nn.init.constant_(m.bias.data, 0)
+    # Initialize conv layers with the delta-orthogonal initialization.
+    elif isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
+        assert m.weight.size(2) == m.weight.size(3)
+        m.weight.data.fill_(0.0)
+        m.bias.data.fill_(0.0)
+        mid = m.weight.size(2) // 2
+        nn.init.orthogonal_(
+            m.weight.data[:, :, mid, mid], nn.init.calculate_gain('relu'))
 
 
 def build_mlp(input_dim, output_dim, hidden_units=[64, 64],

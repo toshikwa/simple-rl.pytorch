@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from .utils import build_mlp
+from .utils import build_mlp, initialize_weight
 
 
 class VFunc(torch.jit.ScriptModule):
@@ -15,7 +15,7 @@ class VFunc(torch.jit.ScriptModule):
             output_dim=1,
             hidden_units=hidden_units,
             hidden_activation=hidden_activation
-        )
+        ).apply(initialize_weight)
 
     @torch.jit.script_method
     def forward(self, states):
@@ -33,7 +33,7 @@ class QFunc(torch.jit.ScriptModule):
             output_dim=1,
             hidden_units=hidden_units,
             hidden_activation=hidden_activation
-        )
+        ).apply(initialize_weight)
 
     @torch.jit.script_method
     def forward(self, states, actions):
@@ -51,13 +51,14 @@ class TwinnedQFunc(torch.jit.ScriptModule):
             output_dim=1,
             hidden_units=hidden_units,
             hidden_activation=hidden_activation
-        )
+        ).apply(initialize_weight)
+
         self.net2 = build_mlp(
             input_dim=state_shape[0] + action_shape[0],
             output_dim=1,
             hidden_units=hidden_units,
             hidden_activation=hidden_activation
-        )
+        ).apply(initialize_weight)
 
     @torch.jit.script_method
     def forward(self, states, actions):
