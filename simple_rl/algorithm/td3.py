@@ -34,7 +34,6 @@ class TD3(DDPG):
             hidden_units=[400, 300],
             hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
-
         self.critic = TwinnedQFunc(
             state_shape=self.state_shape,
             action_shape=self.action_shape,

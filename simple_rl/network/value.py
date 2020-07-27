@@ -82,11 +82,11 @@ class TwinnedQFuncWithEncoder(nn.Module):
             hidden_activation=hidden_activation
         )
 
-    def _forward_encoder(self, states):
+    def _encoder(self, states):
         return self.encoder['linear'](self.encoder['body'](states))
 
     def forward(self, states, actions):
-        return self.mlp_critic(self._forward_encoder(states), actions)
+        return self.mlp_critic(self._encoder(states), actions)
 
     def without_body(self, conv_features, actions):
         return self.mlp_critic(self.encoder['linear'](conv_features), actions)
@@ -94,7 +94,7 @@ class TwinnedQFuncWithEncoder(nn.Module):
 
 class TwinnedQFuncWithDetachedEncoder(TwinnedQFuncWithEncoder):
 
-    def _forward_encoder(self, states):
+    def _encoder(self, states):
         with torch.no_grad():
             states = self.encoder['body'](states)
         return self.encoder['linear'](states)

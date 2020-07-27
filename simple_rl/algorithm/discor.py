@@ -82,7 +82,7 @@ class DisCor(SAC):
         imp_ws1, imp_ws2 = self.calculate_imp_ws(next_states, dones)
 
         loss_critic1 = (curr_qs1 - target_qs).pow_(2).mul_(imp_ws1).sum()
-        loss_critic2 = (curr_qs2 - target_qs).pow_(2).mul_(imp_ws1).sum()
+        loss_critic2 = (curr_qs2 - target_qs).pow_(2).mul_(imp_ws2).sum()
 
         self.optim_critic.zero_grad()
         (loss_critic1 + loss_critic2).backward(retain_graph=False)
