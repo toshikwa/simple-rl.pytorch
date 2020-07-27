@@ -53,16 +53,16 @@ class DisCor(SAC):
         self.update_actor(states)
         self.update_target()
 
-    def sample_errors(self, states):
+    def sample_next_errors(self, next_states):
+        # Calculate next errors using sample approximation over policy.
         with torch.no_grad():
-            actions, _ = self.actor.sample(states)
-            errors1, errors2 = self.error_target(states, actions)
-        return errors1, errors2
+            next_actions, _ = self.actor.sample(next_states)
+            return self.error_target(next_states, next_actions)
 
     def calculate_imp_ws(self, next_states, dones):
-        next_errors1, next_errors2 = self.sample_errors(next_states)
+        next_errors1, next_errors2 = self.sample_next_errors(next_states)
 
-        # Terms inside the exponent of importance weights.
+        # Terms inside the exponent of Eq(8) of the paper.
         x1 = -(1.0 - dones) * self.gamma * next_errors1 / (self.tau1 + 1e-8)
         x2 = -(1.0 - dones) * self.gamma * next_errors2 / (self.tau2 + 1e-8)
 
@@ -79,8 +79,8 @@ class DisCor(SAC):
             next_qs = torch.min(next_qs1, next_qs2) - self.alpha * log_pis
         target_qs = rewards + (1.0 - dones) * self.discount * next_qs
 
+        # Critic's loss is the importance-weighted mean squared error.
         imp_ws1, imp_ws2 = self.calculate_imp_ws(next_states, dones)
-
         loss_critic1 = (curr_qs1 - target_qs).pow_(2).mul_(imp_ws1).sum()
         loss_critic2 = (curr_qs2 - target_qs).pow_(2).mul_(imp_ws2).sum()
 
@@ -93,7 +93,7 @@ class DisCor(SAC):
     def update_error(self, states, actions, dones, next_states, curr_qs1,
                      curr_qs2, target_qs):
         curr_errors1, curr_errors2 = self.error(states, actions)
-        next_errors1, next_errors2 = self.sample_errors(next_states)
+        next_errors1, next_errors2 = self.sample_next_errors(next_states)
 
         with torch.no_grad():
             target_errors1 = (curr_qs1 - target_qs).abs_() \
@@ -108,9 +108,10 @@ class DisCor(SAC):
         (loss_error1 + loss_error2).backward(retain_graph=False)
         self.optim_error.step()
 
+        # Update taus using Polyak-Ruppert Averaging.
+        # (e.g.) tau = (1 - 5e-3) * tau + 5e-3 * batch_mean(curr_error).
         mean_errors1 = curr_errors1.detach_().mean()
         mean_errors2 = curr_errors2.detach_().mean()
-
         self.tau1.data.mul_(1.0 - self.target_update_coef)
         self.tau1.data.add_(self.target_update_coef * mean_errors1.data)
         self.tau2.data.mul_(1.0 - self.target_update_coef)
