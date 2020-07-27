@@ -12,12 +12,12 @@ class DisCor(SAC):
 
     def __init__(self, state_shape, action_shape, device, batch_size=256,
                  gamma=0.99, nstep=1, replay_size=10**6, start_steps=10**4,
-                 lr_actor=3e-4, lr_critic=3e-4, lr_alpha=3e-4, lr_error=3e-4,
-                 target_update_coef=5e-3, tau_init=10.0):
+                 lr_actor=3e-4, lr_critic=3e-4, lr_alpha=3e-4, alpha_init=1.0,
+                 target_update_coef=5e-3, lr_error=3e-4, tau_init=10.0):
         super().__init__(
             state_shape, action_shape, device, batch_size, gamma, nstep,
             replay_size, start_steps, lr_actor, lr_critic, lr_alpha,
-            target_update_coef)
+            alpha_init, target_update_coef)
         assert nstep == 1, 'DisCor only supports nstep=1.'
 
         self.error = TwinnedQFunc(
@@ -33,7 +33,7 @@ class DisCor(SAC):
             hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device).eval()
 
-        self.error_target.load_state_dict(self.error.state_dict())
+        soft_update(self.error_target, self.error, 1.0)
         disable_gradient(self.error_target)
 
         self.optim_error = Adam(self.error.parameters(), lr=lr_error)
@@ -50,10 +50,6 @@ class DisCor(SAC):
             states, actions, rewards, dones, next_states)
         self.update_error(
             states, actions, dones, next_states, curr_qs1, curr_qs2, target_qs)
-        del curr_qs1
-        del curr_qs2
-        del target_qs
-
         self.update_actor(states)
         self.update_target()
 

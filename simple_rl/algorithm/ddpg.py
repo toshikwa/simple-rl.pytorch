@@ -22,9 +22,9 @@ class DDPG(OffPolicy):
 
         self.build_network()
 
-        self.actor_target.load_state_dict(self.actor.state_dict())
+        soft_update(self.actor_target, self.actor, 1.0)
         disable_gradient(self.actor_target)
-        self.critic_target.load_state_dict(self.critic.state_dict())
+        soft_update(self.critic_target, self.critic, 1.0)
         disable_gradient(self.critic_target)
 
         self.optim_actor = Adam(self.actor.parameters(), lr=lr_actor)
