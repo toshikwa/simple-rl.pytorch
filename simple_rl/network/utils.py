@@ -4,10 +4,10 @@ from torch import nn
 import torch.nn.functional as F
 
 
-def initialize_weight(m, gain=1.0):
+def initialize_weight(m, gain=nn.init.calculate_gain('relu')):
     # Initialize linear layers with the orthogonal initialization.
     if isinstance(m, nn.Linear):
-        nn.init.orthogonal_(m.weight.data, gain=gain)
+        nn.init.orthogonal_(m.weight.data, gain)
         m.bias.data.fill_(0.0)
 
     # Initialize conv layers with the delta-orthogonal initialization.
@@ -16,8 +16,7 @@ def initialize_weight(m, gain=1.0):
         m.weight.data.fill_(0.0)
         m.bias.data.fill_(0.0)
         mid = m.weight.size(2) // 2
-        nn.init.orthogonal_(
-            m.weight.data[:, :, mid, mid], nn.init.calculate_gain('relu'))
+        nn.init.orthogonal_(m.weight.data[:, :, mid, mid], gain)
 
 
 def build_mlp(input_dim, output_dim, hidden_units=[64, 64],

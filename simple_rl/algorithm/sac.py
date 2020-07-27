@@ -88,7 +88,7 @@ class SAC(OffPolicy):
     def update_actor(self, states):
         actions, log_pis = self.actor.sample(states)
         qs1, qs2 = self.critic(states, actions)
-        loss_actor = (self.alpha * log_pis - torch.min(qs1, qs2)).mean()
+        loss_actor = self.alpha * log_pis.mean() - torch.min(qs1, qs2).mean()
 
         self.optim_actor.zero_grad()
         loss_actor.backward(retain_graph=False)
@@ -101,7 +101,9 @@ class SAC(OffPolicy):
         self.optim_alpha.zero_grad()
         loss_alpha.backward(retain_graph=False)
         self.optim_alpha.step()
-        self.alpha = self.log_alpha.detach().exp().item()
+
+        with torch.no_grad():
+            self.alpha = self.log_alpha.exp().item()
 
     def update_target(self):
         soft_update(

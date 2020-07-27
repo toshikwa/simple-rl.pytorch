@@ -3,9 +3,10 @@ import torch
 
 def soft_update(target, source, tau):
     """ Update target network using Polyak-Ruppert Averaging. """
-    for t, s in zip(target.parameters(), source.parameters()):
-        t.data.mul_(1.0 - tau)
-        t.data.add_(tau * s.data)
+    with torch.no_grad():
+        for t, s in zip(target.parameters(), source.parameters()):
+            t.data.mul_(1.0 - tau)
+            t.data.add_(tau * s.data)
 
 
 def disable_gradient(network):

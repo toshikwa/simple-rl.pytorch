@@ -110,12 +110,13 @@ class DisCor(SAC):
 
         # Update taus using Polyak-Ruppert Averaging.
         # (e.g.) tau = (1 - 5e-3) * tau + 5e-3 * batch_mean(curr_error).
-        mean_errors1 = curr_errors1.detach_().mean()
-        mean_errors2 = curr_errors2.detach_().mean()
-        self.tau1.data.mul_(1.0 - self.target_update_coef)
-        self.tau1.data.add_(self.target_update_coef * mean_errors1.data)
-        self.tau2.data.mul_(1.0 - self.target_update_coef)
-        self.tau2.data.add_(self.target_update_coef * mean_errors2.data)
+        with torch.no_grad():
+            self.tau1.data.mul_(1.0 - self.target_update_coef)
+            self.tau2.data.mul_(1.0 - self.target_update_coef)
+            self.tau1.data.add_(
+                self.target_update_coef * curr_errors1.mean().data)
+            self.tau2.data.add_(
+                self.target_update_coef * curr_errors2.mean().data)
 
     def update_target(self):
         soft_update(

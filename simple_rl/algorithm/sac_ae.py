@@ -93,7 +93,7 @@ class SACAE(SAC):
 
         actions, log_pis = self.actor.sample_without_body(conv_features)
         qs1, qs2 = self.critic.without_body(conv_features, actions)
-        loss_actor = (self.alpha * log_pis - torch.min(qs1, qs2)).mean()
+        loss_actor = self.alpha * log_pis.mean() - torch.min(qs1, qs2).mean()
 
         self.optim_actor.zero_grad()
         loss_actor.backward(retain_graph=False)
@@ -106,7 +106,9 @@ class SACAE(SAC):
         self.optim_alpha.zero_grad()
         loss_alpha.backward(retain_graph=False)
         self.optim_alpha.step()
-        self.alpha = self.log_alpha.detach().exp().item()
+
+        with torch.no_grad():
+            self.alpha = self.log_alpha.exp().item()
 
     def update_ae(self, states):
         # Preprocess states to be in [-0.5, 0.5] range.

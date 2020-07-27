@@ -1,4 +1,3 @@
-from functools import partial
 import torch
 from torch import nn
 
@@ -27,7 +26,6 @@ class DeterministicPolicy(torch.jit.ScriptModule):
             hidden_units=hidden_units,
             hidden_activation=hidden_activation
         ).apply(initialize_weight)
-        self.net[-1].apply(partial(initialize_weight, gain=0.01))
 
     @torch.jit.script_method
     def forward(self, states):
@@ -52,7 +50,6 @@ class StateIndependentGaussianPolicy(torch.jit.ScriptModule):
             hidden_units=hidden_units,
             hidden_activation=hidden_activation
         ).apply(initialize_weight)
-        self.net[-1].apply(partial(initialize_weight, gain=0.01))
 
         self.log_stds = nn.Parameter(torch.zeros(1, action_shape[0]))
 
@@ -86,7 +83,7 @@ class StateDependentGaussianPolicy(torch.jit.ScriptModule):
 
         self.mean = nn.Linear(
             hidden_units[-1], action_shape[0]
-        ).apply(partial(initialize_weight, gain=0.01))
+        ).apply(initialize_weight)
 
         self.log_std = nn.Sequential(
             nn.Linear(hidden_units[-1], action_shape[0]),
