@@ -3,4 +3,5 @@ gym==0.17.2
 numpy==1.18.4
 torch==1.5.1
 tensorboard==2.2.2
+git+git://github.com/deepmind/dm_control.git
 git+https://github.com/denisyarats/dmc2gym.git

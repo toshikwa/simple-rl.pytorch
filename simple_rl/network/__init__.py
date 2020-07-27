@@ -1,13 +1,14 @@
 from .policy import (
     DeterministicPolicy,
-    StateDependentVarianceGaussianPolicy,
-    StateIndependentVarianceGaussianPolicy,
-    StateDependentVarianceGaussianPolicyWithEncoder
+    StateDependentGaussianPolicy,
+    StateIndependentGaussianPolicy,
+    GaussianPolicyWithDetachedEncoder
 )
 from .value import (
-    StateFunction,
-    StateActionFunction,
-    TwinnedStateActionFunction,
-    TwinnedStateActionFunctionWithEncoder
+    VFunc,
+    QFunc,
+    TwinnedQFunc,
+    TwinnedQFuncWithEncoder,
+    TwinnedQFuncWithDetachedEncoder
 )
 from .ae import Encoder, Decoder

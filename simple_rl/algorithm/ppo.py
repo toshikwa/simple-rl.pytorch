@@ -1,11 +1,10 @@
 import numpy as np
 import torch
 from torch import nn
+from torch.optim import Adam
 
 from .base import OnPolicy
-from simple_rl.network import (
-    StateIndependentVarianceGaussianPolicy, StateFunction
-)
+from simple_rl.network import StateIndependentGaussianPolicy, VFunc
 
 
 class PPO(OnPolicy):
@@ -20,10 +19,8 @@ class PPO(OnPolicy):
 
         self.build_network()
 
-        self.optim_actor = torch.optim.Adam(
-            self.actor.parameters(), lr=lr_actor)
-        self.optim_critic = torch.optim.Adam(
-            self.critic.parameters(), lr=lr_critic)
+        self.optim_actor = Adam(self.actor.parameters(), lr=lr_actor)
+        self.optim_critic = Adam(self.critic.parameters(), lr=lr_critic)
 
         self.targets = torch.empty(
             (rollout_length, 1), dtype=torch.float, device=device)
@@ -37,13 +34,13 @@ class PPO(OnPolicy):
         self.max_grad_norm = max_grad_norm
 
     def build_network(self):
-        self.actor = StateIndependentVarianceGaussianPolicy(
+        self.actor = StateIndependentGaussianPolicy(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[64, 64],
             hidden_activation=nn.Tanh()
         ).to(self.device)
-        self.critic = StateFunction(
+        self.critic = VFunc(
             state_shape=self.state_shape,
             hidden_units=[64, 64],
             hidden_activation=nn.Tanh()

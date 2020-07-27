@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 from .ddpg import DDPG
-from simple_rl.network import DeterministicPolicy, TwinnedStateActionFunction
+from simple_rl.network import DeterministicPolicy, TwinnedQFunc
 
 
 class TD3(DDPG):
@@ -35,13 +35,13 @@ class TD3(DDPG):
             hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
 
-        self.critic = TwinnedStateActionFunction(
+        self.critic = TwinnedQFunc(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[400, 300],
             hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
-        self.critic_target = TwinnedStateActionFunction(
+        self.critic_target = TwinnedQFunc(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[400, 300],

@@ -56,7 +56,7 @@ class LinearLayer(nn.Module):
         return self.net(x)
 
 
-class BaseAutoEncoder(nn.Module):
+class BaseAutoEncoder(torch.jit.ScriptModule):
 
     def __init__(self, state_shape, feature_dim, num_layers=4, num_filters=32):
         super().__init__()
@@ -86,6 +86,7 @@ class Body(BaseAutoEncoder):
             Flatten()
         ).apply(initialize_ae)
 
+    @torch.jit.script_method
     def forward(self, states):
         return self.net(states)
 
@@ -106,6 +107,7 @@ class Encoder(BaseAutoEncoder):
         self.num_layers = num_layers
         self.num_filters = num_filters
 
+    @torch.jit.script_method
     def forward(self, states):
         return self.linear(self.body(states))
 
@@ -127,5 +129,6 @@ class Decoder(BaseAutoEncoder):
                 num_filters, state_shape[0], 3, stride=2, output_padding=1)
         ).apply(initialize_ae)
 
+    @torch.jit.script_method
     def forward(self, features):
         return self.net(features)

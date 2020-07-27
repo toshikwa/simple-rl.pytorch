@@ -1,19 +1,19 @@
 import torch
 from torch import nn
+from torch.optim import Adam
 
 from .sac import SAC
 from simple_rl.network import (
-    Encoder, Decoder,
-    StateDependentVarianceGaussianPolicyWithEncoder,
-    TwinnedStateActionFunctionWithEncoder
+    Encoder, Decoder, GaussianPolicyWithDetachedEncoder,
+    TwinnedQFuncWithEncoder
 )
 from simple_rl.utils import soft_update, preprocess_states
 
 
 class SACAE(SAC):
 
-    def __init__(self, state_shape, action_shape, device, batch_size=256,
-                 gamma=0.99, nstep=1, replay_size=10**6, start_steps=10**4,
+    def __init__(self, state_shape, action_shape, device, batch_size=128,
+                 gamma=0.99, nstep=1, replay_size=10**6, start_steps=1000,
                  lr_encoder=1e-3, lr_decoder=1e-3, lr_actor=1e-3,
                  lr_critic=1e-3, lr_alpha=1e-4, alpha_init=0.1,
                  update_freq_actor=2, update_freq_ae=1, update_freq_target=2,
@@ -25,9 +25,8 @@ class SACAE(SAC):
             alpha_init, target_update_coef)
         assert len(state_shape) == 3
 
-        self.optim_encoder = torch.optim.Adam(
-            self.encoder.parameters(), lr=lr_encoder)
-        self.optim_decoder = torch.optim.Adam(
+        self.optim_encoder = Adam(self.encoder.parameters(), lr=lr_encoder)
+        self.optim_decoder = Adam(
             self.decoder.parameters(), lr=lr_decoder,
             weight_decay=lambda_rae_weights)
 
@@ -56,19 +55,19 @@ class SACAE(SAC):
             num_layers=4,
             num_filters=32
         ).to(self.device)
-        self.actor = StateDependentVarianceGaussianPolicyWithEncoder(
+        self.actor = GaussianPolicyWithDetachedEncoder(
             encoder=self.encoder,
             action_shape=self.action_shape,
             hidden_units=[1024, 1024],
             hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
-        self.critic = TwinnedStateActionFunctionWithEncoder(
+        self.critic = TwinnedQFuncWithEncoder(
             encoder=self.encoder,
             action_shape=self.action_shape,
             hidden_units=[1024, 1024],
             hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
-        self.critic_target = TwinnedStateActionFunctionWithEncoder(
+        self.critic_target = TwinnedQFuncWithEncoder(
             encoder=self.encoder_target,
             action_shape=self.action_shape,
             hidden_units=[1024, 1024],
@@ -92,8 +91,8 @@ class SACAE(SAC):
         with torch.no_grad():
             conv_features = self.encoder.body(states)
 
-        actions, log_pis = self.actor.sample(conv_features, skip_body=True)
-        qs1, qs2 = self.critic(conv_features, actions, skip_body=True)
+        actions, log_pis = self.actor.sample_without_body(conv_features)
+        qs1, qs2 = self.critic.without_body(conv_features, actions)
         loss_actor = (self.alpha * log_pis - torch.min(qs1, qs2)).mean()
 
         self.optim_actor.zero_grad()

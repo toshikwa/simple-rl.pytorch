@@ -1,9 +1,10 @@
 import torch
 from torch import nn
+from torch.optim import Adam
 import torch.nn.functional as F
 
 from .sac import SAC
-from simple_rl.network import TwinnedStateActionFunction
+from simple_rl.network import TwinnedQFunc
 from simple_rl.utils import soft_update, disable_gradient
 
 
@@ -19,13 +20,13 @@ class DisCor(SAC):
             target_update_coef)
         assert nstep == 1, 'DisCor only supports nstep=1.'
 
-        self.error = TwinnedStateActionFunction(
+        self.error = TwinnedQFunc(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[256, 256, 256],
             hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
-        self.error_target = TwinnedStateActionFunction(
+        self.error_target = TwinnedQFunc(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[256, 256, 256],
@@ -35,8 +36,7 @@ class DisCor(SAC):
         self.error_target.load_state_dict(self.error.state_dict())
         disable_gradient(self.error_target)
 
-        self.optim_error = torch.optim.Adam(
-            self.error.parameters(), lr=lr_error)
+        self.optim_error = Adam(self.error.parameters(), lr=lr_error)
 
         self.tau1 = torch.tensor(tau_init, device=device, requires_grad=False)
         self.tau2 = torch.tensor(tau_init, device=device, requires_grad=False)

@@ -1,11 +1,10 @@
 import numpy as np
 import torch
 from torch import nn
+from torch.optim import Adam
 
 from .base import OffPolicy
-from simple_rl.network import (
-    StateDependentVarianceGaussianPolicy, TwinnedStateActionFunction
-)
+from simple_rl.network import StateDependentGaussianPolicy, TwinnedQFunc
 from simple_rl.utils import soft_update, disable_gradient
 
 
@@ -23,10 +22,8 @@ class SAC(OffPolicy):
         self.critic_target.load_state_dict(self.critic.state_dict())
         disable_gradient(self.critic_target)
 
-        self.optim_actor = torch.optim.Adam(
-            self.actor.parameters(), lr=lr_actor)
-        self.optim_critic = torch.optim.Adam(
-            self.critic.parameters(), lr=lr_critic)
+        self.optim_actor = Adam(self.actor.parameters(), lr=lr_actor)
+        self.optim_critic = Adam(self.critic.parameters(), lr=lr_critic)
 
         self.alpha = alpha_init
         self.log_alpha = torch.tensor(
@@ -37,19 +34,19 @@ class SAC(OffPolicy):
         self.target_update_coef = target_update_coef
 
     def build_network(self):
-        self.actor = StateDependentVarianceGaussianPolicy(
+        self.actor = StateDependentGaussianPolicy(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[256, 256],
             hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
-        self.critic = TwinnedStateActionFunction(
+        self.critic = TwinnedQFunc(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[256, 256],
             hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
-        self.critic_target = TwinnedStateActionFunction(
+        self.critic_target = TwinnedQFunc(
             state_shape=self.state_shape,
             action_shape=self.action_shape,
             hidden_units=[256, 256],
