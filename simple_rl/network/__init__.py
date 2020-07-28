@@ -8,7 +8,8 @@ from .value import (
     VFunc,
     QFunc,
     TwinnedQFunc,
+    TwinnedErrorFunc,
     TwinnedQFuncWithEncoder,
-    TwinnedQFuncWithDetachedEncoder
+    TwinnedErrorFuncWithEncoder
 )
 from .ae import Encoder, Decoder

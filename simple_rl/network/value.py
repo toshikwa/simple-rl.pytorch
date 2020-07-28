@@ -66,6 +66,14 @@ class TwinnedQFunc(torch.jit.ScriptModule):
         return self.net1(x), self.net2(x)
 
 
+class TwinnedErrorFunc(TwinnedQFunc):
+
+    @torch.jit.script_method
+    def forward(self, states, actions):
+        x = torch.cat([states, actions], dim=-1)
+        return self.net1(x).exp_(), self.net2(x).exp_()
+
+
 class TwinnedQFuncWithEncoder(nn.Module):
 
     def __init__(self, encoder, action_shape, hidden_units=[1024, 1024],
@@ -93,9 +101,30 @@ class TwinnedQFuncWithEncoder(nn.Module):
         return self.mlp_critic(self.encoder['linear'](conv_features), actions)
 
 
-class TwinnedQFuncWithDetachedEncoder(TwinnedQFuncWithEncoder):
+class TwinnedErrorFuncWithEncoder(nn.Module):
+
+    def __init__(self, encoder, action_shape, hidden_units=[1024, 1024],
+                 hidden_activation=nn.ReLU(inplace=True)):
+        super().__init__()
+
+        self.encoder = nn.ModuleDict({
+            'body': encoder.body,
+            'linear': encoder.linear
+        })
+        self.mlp_error = TwinnedErrorFunc(
+            state_shape=(encoder.feature_dim, ),
+            action_shape=action_shape,
+            hidden_units=hidden_units,
+            hidden_activation=hidden_activation
+        )
 
     def _encoder(self, states):
         with torch.no_grad():
             states = self.encoder['body'](states)
         return self.encoder['linear'](states)
+
+    def forward(self, states, actions):
+        return self.mlp_error(self._encoder(states), actions)
+
+    def without_body(self, conv_features, actions):
+        return self.mlp_error(self.encoder['linear'](conv_features), actions)

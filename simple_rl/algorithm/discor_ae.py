@@ -4,7 +4,7 @@ from torch.optim import Adam
 
 from .sac_ae import SACAE
 from .discor import DisCor
-from simple_rl.network import TwinnedQFuncWithDetachedEncoder
+from simple_rl.network import TwinnedErrorFuncWithEncoder
 from simple_rl.utils import soft_update, disable_gradient
 
 
@@ -25,21 +25,21 @@ class DisCorAE(SACAE, DisCor):
             update_freq_target, target_update_coef, target_update_coef_ae,
             lambda_rae_latents, lambda_rae_weights)
 
-        self.error = TwinnedQFuncWithDetachedEncoder(
+        self.error = TwinnedErrorFuncWithEncoder(
             encoder=self.encoder,
             action_shape=self.action_shape,
             hidden_units=[1024, 1024],
             hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device)
-        self.error_target = TwinnedQFuncWithDetachedEncoder(
+        self.error_target = TwinnedErrorFuncWithEncoder(
             encoder=self.encoder_target,
             action_shape=self.action_shape,
             hidden_units=[1024, 1024],
             hidden_activation=nn.ReLU(inplace=True)
         ).to(self.device).eval()
 
-        soft_update(self.error_target, self.error, 1.0)
-        disable_gradient(self.error_target)
+        soft_update(self.error_target.mlp_error, self.error.mlp_error, 1.0)
+        disable_gradient(self.error_target.mlp_error)
 
         self.optim_error = Adam(self.error.parameters(), lr=lr_error)
 
@@ -52,12 +52,12 @@ class DisCorAE(SACAE, DisCor):
         states, actions, rewards, dones, next_states = \
             self.buffer.sample(self.batch_size)
 
-        curr_qs1, curr_qs2, target_qs = self.update_critic_with_is(
+        td_errors1, td_errors2 = self.update_critic_with_is(
             states, actions, rewards, dones, next_states)
         if self.learning_steps % self.update_freq_error == 0:
             self.update_error(
                 states, actions, dones, next_states,
-                curr_qs1, curr_qs2, target_qs
+                td_errors1, td_errors2
             )
         if self.learning_steps % self.update_freq_actor == 0:
             self.update_actor(states)
