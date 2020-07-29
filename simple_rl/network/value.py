@@ -71,7 +71,7 @@ class TwinnedErrorFunc(TwinnedQFunc):
     @torch.jit.script_method
     def forward(self, states, actions):
         x = torch.cat([states, actions], dim=-1)
-        return self.net1(x).exp_(), self.net2(x).exp_()
+        return self.net1(x), self.net2(x)
 
 
 class TwinnedQFuncWithEncoder(nn.Module):
