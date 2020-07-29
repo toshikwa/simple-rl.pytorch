@@ -10,12 +10,12 @@ from simple_rl.utils import soft_update, disable_gradient
 
 class DisCor(SAC):
 
-    def __init__(self, state_shape, action_shape, device, batch_size=256,
+    def __init__(self, state_shape, action_shape, device, seed, batch_size=256,
                  gamma=0.99, nstep=1, replay_size=10**6, start_steps=10**4,
                  lr_actor=3e-4, lr_critic=3e-4, lr_alpha=3e-4, alpha_init=1.0,
                  target_update_coef=5e-3, lr_error=3e-4, tau_init=10.0):
         super().__init__(
-            state_shape, action_shape, device, batch_size, gamma, nstep,
+            state_shape, action_shape, device, seed, batch_size, gamma, nstep,
             replay_size, start_steps, lr_actor, lr_critic, lr_alpha,
             alpha_init, target_update_coef)
         assert nstep == 1, 'DisCor only supports nstep=1.'

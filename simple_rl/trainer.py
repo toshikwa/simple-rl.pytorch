@@ -2,7 +2,6 @@ import os
 from time import time
 from datetime import timedelta
 import numpy as np
-import torch
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -19,8 +18,6 @@ class Trainer:
         self.log_dir = log_dir
 
         # Set seed.
-        np.random.seed(seed)
-        torch.manual_seed(seed)
         self.env.seed(seed)
         self.env_test.seed(2**31-seed)
 

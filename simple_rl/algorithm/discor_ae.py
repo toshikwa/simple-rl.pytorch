@@ -10,7 +10,7 @@ from simple_rl.utils import soft_update, disable_gradient
 
 class DisCorAE(SACAE, DisCor):
 
-    def __init__(self, state_shape, action_shape, device, batch_size=128,
+    def __init__(self, state_shape, action_shape, device, seed, batch_size=128,
                  gamma=0.99, nstep=1, replay_size=10**6, start_steps=1000,
                  lr_encoder=1e-3, lr_decoder=1e-3, lr_actor=1e-3,
                  lr_critic=1e-3, lr_alpha=1e-4, alpha_init=0.1,
@@ -19,7 +19,7 @@ class DisCorAE(SACAE, DisCor):
                  lambda_rae_latents=1e-6, lambda_rae_weights=1e-7,
                  lr_error=1e-3, tau_init=10.0, update_freq_error=2):
         super().__init__(
-            state_shape, action_shape, device, batch_size, gamma, nstep,
+            state_shape, action_shape, device, seed, batch_size, gamma, nstep,
             replay_size, start_steps, lr_encoder, lr_decoder, lr_actor,
             lr_critic, lr_alpha, alpha_init, update_freq_actor, update_freq_ae,
             update_freq_target, target_update_coef, target_update_coef_ae,

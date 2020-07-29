@@ -78,7 +78,7 @@ class StateDependentGaussianPolicy(torch.jit.ScriptModule):
             output_dim=hidden_units[-1],
             hidden_units=hidden_units[:-1],
             hidden_activation=hidden_activation,
-            output_activation=nn.ReLU(inplace=True)
+            output_activation=hidden_activation
         ).apply(initialize_weight)
 
         self.mean = nn.Linear(

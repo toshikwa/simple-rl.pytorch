@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import numpy as np
 import torch
 
 from simple_rl.buffer import (
@@ -8,7 +9,8 @@ from simple_rl.buffer import (
 
 class Algorithm(ABC):
 
-    def __init__(self, state_shape, action_shape, device, batch_size, gamma):
+    def __init__(self, state_shape, action_shape, device, seed, batch_size,
+                 gamma):
         self.learning_steps = 0
         self.state_shape = state_shape
         self.action_shape = action_shape
@@ -16,6 +18,10 @@ class Algorithm(ABC):
         self.device = device
         self.batch_size = batch_size
         self.gamma = gamma
+
+        # Set seed.
+        np.random.seed(seed)
+        torch.manual_seed(seed)
 
     @abstractmethod
     def build_network(self):
@@ -51,10 +57,10 @@ class Algorithm(ABC):
 
 class OnPolicy(Algorithm):
 
-    def __init__(self, state_shape, action_shape, device, batch_size, gamma,
-                 rollout_length=10**6):
+    def __init__(self, state_shape, action_shape, device, seed, batch_size,
+                 gamma, rollout_length=10**6):
         super().__init__(
-            state_shape, action_shape, device, batch_size, gamma)
+            state_shape, action_shape, device, seed, batch_size, gamma)
 
         self.buffer = RolloutBuffer(
             buffer_size=rollout_length,
@@ -93,10 +99,10 @@ class OnPolicy(Algorithm):
 
 class OffPolicy(Algorithm):
 
-    def __init__(self, state_shape, action_shape, device, batch_size, gamma,
-                 nstep, replay_size=10**6, start_steps=10**4):
+    def __init__(self, state_shape, action_shape, device, seed, batch_size,
+                 gamma, nstep, replay_size=10**6, start_steps=10**4):
         super().__init__(
-            state_shape, action_shape, device, batch_size, gamma)
+            state_shape, action_shape, device, seed, batch_size, gamma)
 
         Buf = PixelReplayBuffer if len(state_shape) == 3 else StateReplayBuffer
         self.buffer = Buf(

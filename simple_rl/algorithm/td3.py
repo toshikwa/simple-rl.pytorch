@@ -7,13 +7,13 @@ from simple_rl.network import DeterministicPolicy, TwinnedQFunc
 
 class TD3(DDPG):
 
-    def __init__(self, state_shape, action_shape, device, batch_size=128,
+    def __init__(self, state_shape, action_shape, device, seed, batch_size=128,
                  gamma=0.99, nstep=1, replay_size=10**6, start_steps=10**4,
                  lr_actor=1e-3, lr_critic=1e-3, std=0.1,
                  target_update_coef=5e-3, update_interval_policy=2,
                  std_target=0.2, clip_noise=0.5):
         super().__init__(
-            state_shape, action_shape, device, batch_size, gamma, nstep,
+            state_shape, action_shape, device, seed, batch_size, gamma, nstep,
             replay_size, start_steps, lr_actor, lr_critic, std,
             target_update_coef)
 

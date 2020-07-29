@@ -23,7 +23,8 @@ def run(args):
     algo = PIXEL_ALGORITHMS[args.algo](
         state_shape=env.observation_space.shape,
         action_shape=env.action_space.shape,
-        device=device
+        device=device,
+        seed=args.seed
     )
 
     trainer = Trainer(

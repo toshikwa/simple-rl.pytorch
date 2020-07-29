@@ -9,12 +9,12 @@ from simple_rl.utils import soft_update, disable_gradient
 
 class DDPG(OffPolicy):
 
-    def __init__(self, state_shape, action_shape, device, batch_size=128,
+    def __init__(self, state_shape, action_shape, device, seed, batch_size=128,
                  gamma=0.99, nstep=1, replay_size=10**6, start_steps=10**4,
                  lr_actor=1e-3, lr_critic=1e-3, std=0.1,
                  target_update_coef=5e-3):
         super().__init__(
-            state_shape, action_shape, device, batch_size, gamma, nstep,
+            state_shape, action_shape, device, seed, batch_size, gamma, nstep,
             replay_size, start_steps)
 
         self.std = std

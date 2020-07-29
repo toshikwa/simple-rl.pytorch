@@ -9,12 +9,12 @@ from simple_rl.network import StateIndependentGaussianPolicy, VFunc
 
 class PPO(OnPolicy):
 
-    def __init__(self, state_shape, action_shape, device, batch_size=64,
+    def __init__(self, state_shape, action_shape, device, seed, batch_size=64,
                  gamma=0.995, rollout_length=2048, lr_actor=3e-4,
                  lr_critic=3e-4, num_updates=10, clip_eps=0.2,
                  lambda_gae=0.97, coef_ent=0.0, max_grad_norm=0.5):
         super().__init__(
-            state_shape, action_shape, device, batch_size, gamma,
+            state_shape, action_shape, device, seed, batch_size, gamma,
             rollout_length)
 
         self.build_network()

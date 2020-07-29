@@ -12,7 +12,7 @@ from simple_rl.utils import soft_update, preprocess_states
 
 class SACAE(SAC):
 
-    def __init__(self, state_shape, action_shape, device, batch_size=128,
+    def __init__(self, state_shape, action_shape, device, seed, batch_size=128,
                  gamma=0.99, nstep=1, replay_size=10**6, start_steps=1000,
                  lr_encoder=1e-3, lr_decoder=1e-3, lr_actor=1e-3,
                  lr_critic=1e-3, lr_alpha=1e-4, alpha_init=0.1,
@@ -20,7 +20,7 @@ class SACAE(SAC):
                  target_update_coef=0.01, target_update_coef_ae=0.05,
                  lambda_rae_latents=1e-6, lambda_rae_weights=1e-7):
         super().__init__(
-            state_shape, action_shape, device, batch_size, gamma, nstep,
+            state_shape, action_shape, device, seed, batch_size, gamma, nstep,
             replay_size, start_steps, lr_actor, lr_critic, lr_alpha,
             alpha_init, target_update_coef)
         assert len(state_shape) == 3

@@ -66,14 +66,6 @@ class TwinnedQFunc(torch.jit.ScriptModule):
         return self.net1(x), self.net2(x)
 
 
-class TwinnedErrorFunc(TwinnedQFunc):
-
-    @torch.jit.script_method
-    def forward(self, states, actions):
-        x = torch.cat([states, actions], dim=-1)
-        return self.net1(x), self.net2(x)
-
-
 class TwinnedQFuncWithEncoder(nn.Module):
 
     def __init__(self, encoder, action_shape, hidden_units=[1024, 1024],
@@ -99,6 +91,9 @@ class TwinnedQFuncWithEncoder(nn.Module):
 
     def without_body(self, conv_features, actions):
         return self.mlp_critic(self.encoder['linear'](conv_features), actions)
+
+
+TwinnedErrorFunc = TwinnedQFunc
 
 
 class TwinnedErrorFuncWithEncoder(nn.Module):
