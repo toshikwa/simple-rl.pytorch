@@ -13,7 +13,8 @@ class DisCor(SAC):
     def __init__(self, state_shape, action_shape, device, seed, batch_size=256,
                  gamma=0.99, nstep=1, replay_size=10**6, start_steps=10**4,
                  lr_actor=3e-4, lr_critic=3e-4, lr_alpha=3e-4, alpha_init=1.0,
-                 target_update_coef=5e-3, lr_error=3e-4, tau_init=10.0):
+                 target_update_coef=5e-3, lr_error=3e-4, tau_init=10.0,
+                 start_steps_is=10**4):
         super().__init__(
             state_shape, action_shape, device, seed, batch_size, gamma, nstep,
             replay_size, start_steps, lr_actor, lr_critic, lr_alpha,
@@ -37,9 +38,10 @@ class DisCor(SAC):
         disable_gradient(self.error_target)
 
         self.optim_error = Adam(self.error.parameters(), lr=lr_error)
-
         self.tau1 = torch.tensor(tau_init, device=device, requires_grad=False)
         self.tau2 = torch.tensor(tau_init, device=device, requires_grad=False)
+
+        self.start_steps_is = start_steps_is
 
     def update(self):
         self.learning_steps += 1
@@ -80,8 +82,13 @@ class DisCor(SAC):
             states, actions, rewards, dones, next_states
         )
 
+        # Don't use importance sampling during first some steps.
+        if self.learning_steps >= self.start_steps_is:
+            imp_ws1, imp_ws2 = self.calculate_imp_ws(next_states, dones)
+        else:
+            imp_ws1 = imp_ws2 = 1 / dones.size(0)
+
         # Critic's loss is the importance-weighted mean squared error.
-        imp_ws1, imp_ws2 = self.calculate_imp_ws(next_states, dones)
         loss_critic1 = td_errors1.pow(2).mul_(imp_ws1).sum()
         loss_critic2 = td_errors2.pow(2).mul_(imp_ws2).sum()
 

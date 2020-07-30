@@ -17,7 +17,8 @@ class DisCorAE(SACAE, DisCor):
                  update_freq_actor=2, update_freq_ae=1, update_freq_target=2,
                  target_update_coef=0.01, target_update_coef_ae=0.05,
                  lambda_rae_latents=1e-6, lambda_rae_weights=1e-7,
-                 lr_error=1e-3, tau_init=10.0, update_freq_error=2):
+                 lr_error=1e-3, tau_init=10.0, start_steps_is=10**4,
+                 update_freq_error=2):
         super().__init__(
             state_shape, action_shape, device, seed, batch_size, gamma, nstep,
             replay_size, start_steps, lr_encoder, lr_decoder, lr_actor,
@@ -42,9 +43,10 @@ class DisCorAE(SACAE, DisCor):
         disable_gradient(self.error_target.mlp_error)
 
         self.optim_error = Adam(self.error.parameters(), lr=lr_error)
-
         self.tau1 = torch.tensor(tau_init, device=device, requires_grad=False)
         self.tau2 = torch.tensor(tau_init, device=device, requires_grad=False)
+
+        self.start_steps_is = start_steps_is
         self.update_freq_error = update_freq_error
 
     def update(self):
