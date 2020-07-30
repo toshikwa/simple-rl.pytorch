@@ -97,6 +97,12 @@ class DDPG(OffPolicy):
 
     def update_target(self):
         soft_update(
-            self.actor_target, self.actor, self.target_update_coef)
+            self.actor_target,
+            self.actor,
+            self.target_update_coef
+        )
         soft_update(
-            self.critic_target, self.critic, self.target_update_coef)
+            self.critic_target,
+            self.critic,
+            self.target_update_coef
+        )

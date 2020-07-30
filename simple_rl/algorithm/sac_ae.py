@@ -100,7 +100,7 @@ class SACAE(SAC):
         self.optim_actor.step()
 
         loss_alpha = -self.log_alpha * (
-            self.target_entropy + log_pis.detach().mean()
+            self.target_entropy + log_pis.detach_().mean()
         )
 
         self.optim_alpha.zero_grad()
@@ -135,8 +135,12 @@ class SACAE(SAC):
 
     def update_target(self):
         soft_update(
-            self.critic_target.encoder, self.critic.encoder,
-            self.target_update_coef_ae)
+            self.critic_target.encoder,
+            self.critic.encoder,
+            self.target_update_coef_ae
+        )
         soft_update(
-            self.critic_target.mlp_critic, self.critic.mlp_critic,
-            self.target_update_coef)
+            self.critic_target.mlp_critic,
+            self.critic.mlp_critic,
+            self.target_update_coef
+        )

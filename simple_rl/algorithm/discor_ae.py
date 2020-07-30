@@ -52,12 +52,12 @@ class DisCorAE(SACAE, DisCor):
         states, actions, rewards, dones, next_states = \
             self.buffer.sample(self.batch_size)
 
-        td_errors1, td_errors2 = self.update_critic_with_is(
-            states, actions, rewards, dones, next_states)
+        td_errors1, td_errors2 = self.update_critic_is(
+            states, actions, rewards, dones, next_states
+        )
         if self.learning_steps % self.update_freq_error == 0:
             self.update_error(
-                states, actions, dones, next_states,
-                td_errors1, td_errors2
+                states, actions, dones, next_states, td_errors1, td_errors2
             )
         if self.learning_steps % self.update_freq_actor == 0:
             self.update_actor(states)
@@ -67,12 +67,9 @@ class DisCorAE(SACAE, DisCor):
             self.update_target()
 
     def update_target(self):
+        super().update_target()
         soft_update(
-            self.critic_target.encoder, self.critic.encoder,
-            self.target_update_coef_ae)
-        soft_update(
-            self.critic_target.mlp_critic, self.critic.mlp_critic,
-            self.target_update_coef)
-        soft_update(
-            self.error_target.mlp_error, self.error.mlp_error,
-            self.target_update_coef)
+            self.error_target.mlp_error,
+            self.error.mlp_error,
+            self.target_update_coef
+        )

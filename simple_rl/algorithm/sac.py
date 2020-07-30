@@ -69,17 +69,22 @@ class SAC(OffPolicy):
         self.update_actor(states)
         self.update_target()
 
-    def update_critic(self, states, actions, rewards, dones, next_states):
+    def calculate_td_error(self, states, actions, rewards, dones, next_states):
         curr_qs1, curr_qs2 = self.critic(states, actions)
-
         with torch.no_grad():
             next_actions, log_pis = self.actor.sample(next_states)
             next_qs1, next_qs2 = self.critic_target(next_states, next_actions)
             next_qs = torch.min(next_qs1, next_qs2) - self.alpha * log_pis
         target_qs = rewards + (1.0 - dones) * self.discount * next_qs
 
-        loss_critic1 = (curr_qs1 - target_qs).pow_(2).mean()
-        loss_critic2 = (curr_qs2 - target_qs).pow_(2).mean()
+        return (curr_qs1 - target_qs).abs_(), (curr_qs2 - target_qs).abs_()
+
+    def update_critic(self, states, actions, rewards, dones, next_states):
+        td_errors1, td_errors2 = self.calculate_td_error(
+            states, actions, rewards, dones, next_states
+        )
+        loss_critic1 = td_errors1.pow_(2).mean()
+        loss_critic2 = td_errors2.pow_(2).mean()
 
         self.optim_critic.zero_grad()
         (loss_critic1 + loss_critic2).backward(retain_graph=False)
@@ -107,4 +112,7 @@ class SAC(OffPolicy):
 
     def update_target(self):
         soft_update(
-            self.critic_target, self.critic, self.target_update_coef)
+            self.critic_target,
+            self.critic,
+            self.target_update_coef
+        )

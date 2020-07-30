@@ -46,11 +46,17 @@ class DisCor(SAC):
         states, actions, rewards, dones, next_states = \
             self.buffer.sample(self.batch_size)
 
-        td_errors1, td_errors2 = self.update_critic_with_is(
-            states, actions, rewards, dones, next_states)
+        # Update critic networks with importance sampling.
+        td_errors1, td_errors2 = self.update_critic_is(
+            states, actions, rewards, dones, next_states
+        )
+        # Update error networks.
         self.update_error(
-            states, actions, dones, next_states, td_errors1, td_errors2)
+            states, actions, dones, next_states, td_errors1, td_errors2
+        )
+        # Update actor networks.
         self.update_actor(states)
+        # Update target networks.
         self.update_target()
 
     def sample_next_errors(self, next_states):
@@ -69,19 +75,10 @@ class DisCor(SAC):
         # Calculate self-normalized importance weights.
         return F.softmax(x1, dim=0), F.softmax(x2, dim=0)
 
-    def update_critic_with_is(self, states, actions, rewards, dones,
-                              next_states):
-        curr_qs1, curr_qs2 = self.critic(states, actions)
-
-        with torch.no_grad():
-            next_actions, log_pis = self.actor.sample(next_states)
-            next_qs1, next_qs2 = self.critic_target(next_states, next_actions)
-            next_qs = torch.min(next_qs1, next_qs2) - self.alpha * log_pis
-        target_qs = rewards + (1.0 - dones) * self.discount * next_qs
-
-        # Calculate absolute td errors to update error models.
-        td_errors1 = (curr_qs1 - target_qs).abs_()
-        td_errors2 = (curr_qs2 - target_qs).abs_()
+    def update_critic_is(self, states, actions, rewards, dones, next_states):
+        td_errors1, td_errors2 = self.calculate_td_error(
+            states, actions, rewards, dones, next_states
+        )
 
         # Critic's loss is the importance-weighted mean squared error.
         imp_ws1, imp_ws2 = self.calculate_imp_ws(next_states, dones)
@@ -94,8 +91,8 @@ class DisCor(SAC):
 
         return td_errors1.detach_(), td_errors2.detach_()
 
-    def update_error(self, states, actions, dones, next_states,
-                     td_errors1, td_errors2):
+    def update_error(self, states, actions, dones, next_states, td_errors1,
+                     td_errors2):
         curr_errors1, curr_errors2 = self.error(states, actions)
         next_errors1, next_errors2 = self.sample_next_errors(next_states)
 
@@ -121,7 +118,9 @@ class DisCor(SAC):
                 self.target_update_coef * curr_errors2.mean().data)
 
     def update_target(self):
+        super().update_target()
         soft_update(
-            self.critic_target, self.critic, self.target_update_coef)
-        soft_update(
-            self.error_target, self.error, self.target_update_coef)
+            self.error_target,
+            self.error,
+            self.target_update_coef
+        )
