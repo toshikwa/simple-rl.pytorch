@@ -58,7 +58,7 @@ class Algorithm(ABC):
 class OnPolicy(Algorithm):
 
     def __init__(self, state_shape, action_shape, device, seed, batch_size,
-                 gamma, rollout_length=10**6):
+                 gamma, rollout_length=2048):
         super().__init__(
             state_shape, action_shape, device, seed, batch_size, gamma)
 
